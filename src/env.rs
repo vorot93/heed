@@ -236,7 +236,8 @@ impl Env {
 
         let mut lock = self.0.dbi_open_mutex.lock().unwrap();
 
-        let result = unsafe { lmdb_result(ffi::mdb_dbi_open(rtxn.txn, name_ptr, 0, &mut dbi)) };
+        let flags = ffi::MDB_DUPSORT;
+        let result = unsafe { lmdb_result(ffi::mdb_dbi_open(rtxn.txn, name_ptr, flags, &mut dbi)) };
 
         drop(name);
 
@@ -291,7 +292,7 @@ impl Env {
             lmdb_result(ffi::mdb_dbi_open(
                 wtxn.txn.txn,
                 name_ptr,
-                ffi::MDB_CREATE,
+                ffi::MDB_CREATE | ffi::MDB_DUPSORT,
                 &mut dbi,
             ))
         };

@@ -919,7 +919,7 @@ impl PolyDatabase {
 
         let mut key_val = unsafe { crate::into_val(&key_bytes) };
         let mut data_val = unsafe { crate::into_val(&data_bytes) };
-        let flags = lmdb_sys::MDB_APPEND;
+        let flags = lmdb_sys::MDB_APPENDDUP;
 
         unsafe {
             lmdb_result(ffi::mdb_put(
