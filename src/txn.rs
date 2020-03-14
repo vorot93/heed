@@ -14,6 +14,9 @@ pub struct RoTxn<T=()> {
 
 unsafe impl<T: Send> Send for RoTxn<T> { }
 
+#[cfg(feature = "sync-rtxn")]
+unsafe impl<T: Sync> Sync for RoTxn<T> { }
+
 impl<T> RoTxn<T> {
     pub(crate) fn new(env: *mut ffi::MDB_env) -> Result<RoTxn<T>> {
         let mut txn: *mut ffi::MDB_txn = ptr::null_mut();

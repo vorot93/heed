@@ -36,3 +36,5 @@ preserve_order = ["serde_json/preserve_order"]
 arbitrary_precision = ["serde_json/arbitrary_precision"]
 raw_value = ["serde_json/raw_value"]
 unbounded_depth = ["serde_json/unbounded_depth"]
+# Make the read transactions impl Sync
+sync-rtxn = []

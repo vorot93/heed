@@ -163,8 +163,14 @@ impl EnvOpenOptions {
                         lmdb_result(ffi::mdb_env_set_maxdbs(env, dbs))?;
                     }
 
+                    let flags = if cfg!(feature = "sync-rtxn") {
+                        self.flags | Flags::MdbNoTls as u32
+                    } else {
+                        self.flags
+                    };
+
                     let result =
-                        lmdb_result(ffi::mdb_env_open(env, path.as_ptr(), self.flags, 0o600));
+                        lmdb_result(ffi::mdb_env_open(env, path.as_ptr(), flags, 0o600));
 
                     match result {
                         Ok(()) => {
