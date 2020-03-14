@@ -93,3 +93,19 @@ impl<T> Deref for RwTxn<'_, T> {
         &self.txn
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[cfg(feature = "sync-rtxn")]
+    #[test]
+    fn rtxn_is_sync() {
+        fn need_sync_send<T: Sync + Send>(_x: T) { }
+
+        let rtxn = RoTxn::<()> { txn: 0 as *mut _, _phantom: std::marker::PhantomData };
+
+        need_sync_send(&rtxn);
+        need_sync_send(rtxn);
+    }
+}
