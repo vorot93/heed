@@ -64,7 +64,7 @@ impl Iterator for DiscoverIds<'_> {
 // 1 "coucou" | "hello"  0
 // 2 "papa"   | "kiki"   5
 // 5 "kiki"   | "papa"   2
-pub fn double_map<'txn>(
+pub fn generate_ids<'txn>(
     rtxn: &'txn RoTxn,
     ids_userids: Database<OwnedType<BEU32>, Str>,
     userids_ids: Database<Str, OwnedType<BEU32>>,
@@ -73,14 +73,20 @@ pub fn double_map<'txn>(
 {
     // We construct a cursor to get next available ids
     let ids_iter = ids_userids.iter(rtxn)?;
-    let iter = DiscoverIds::new(ids_iter)?;
+    let mut available_ids = DiscoverIds::new(ids_iter)?;
 
-    let mut available_ids = Vec::new();
-    for result in iter.take(userids.len()) {
-        available_ids.push(result?);
+    let mut output_ids = Vec::with_capacity(userids.len());
+    for userid in userids {
+        match userids_ids.get(rtxn, userid)? {
+            Some(id) => output_ids.push(id.get()),
+            None => match available_ids.next().transpose()? {
+                Some(id) => output_ids.push(id),
+                None => break, // this branch must return an error!
+            },
+        }
     }
 
-    Ok(available_ids)
+    Ok(output_ids)
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -103,20 +109,29 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // preregister ids
     let mut wtxn = env.write_txn()?;
+
+    // register ids in the database
     ids_userids.put(&mut wtxn, &BEU32::new(0), "hello0")?;
     ids_userids.put(&mut wtxn, &BEU32::new(1), "hello1")?;
     // ids_userids.put(&mut wtxn, &BEU32::new(2), "hello2")?;
     ids_userids.put(&mut wtxn, &BEU32::new(3), "hello3")?;
     ids_userids.put(&mut wtxn, &BEU32::new(4), "hello4")?;
+
+    // register userids in the database
+    userids_ids.put(&mut wtxn, "hello0", &BEU32::new(0))?;
+    userids_ids.put(&mut wtxn, "hello1", &BEU32::new(1))?;
+    // userids_ids.put(&mut wtxn, "hello2", &BEU32::new(2))?;
+    userids_ids.put(&mut wtxn, "hello3", &BEU32::new(3))?;
+    userids_ids.put(&mut wtxn, "hello4", &BEU32::new(4))?;
+
     wtxn.commit()?;
 
     let rtxn = env.read_txn()?;
-    let ids = double_map(&rtxn, ids_userids, userids_ids, &[""; 100])?;
-    println!("{:?}..{:?}", &ids[..10], &ids[ids.len() - 10..ids.len()]);
+    let userids = &["kevin", "lol", "hello0", "hello1", "hello2", "hello3", "hello4"][..];
+    let ids = double_map(&rtxn, ids_userids, userids_ids, userids)?;
 
-    let mut iter = ids.into_iter();
-    assert_eq!(iter.next(), Some(2));
-    assert_eq!(iter.as_slice(), (5..=103).collect::<Vec<u32>>().as_slice());
+    println!("{:?}", &ids[..]);
+    assert_eq!(&ids[..], &[2, 5, 0, 1, 6, 3, 4][..]);
 
     Ok(())
 }
