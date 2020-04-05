@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fs;
 use std::path::Path;
-use heed::{Database, RoTxn, RoIter, EnvOpenOptions};
+use heed::{Database, RwTxn, RoTxn, RoIter, EnvOpenOptions};
 use heed::types::{Str, OwnedType};
 
 pub type BEU32 = heed::zerocopy::U32<heed::byteorder::BE>;
@@ -60,33 +60,40 @@ impl Iterator for DiscoverIds<'_> {
     }
 }
 
-// 0 "hello"  | "coucou" 1
-// 1 "coucou" | "hello"  0
-// 2 "papa"   | "kiki"   5
-// 5 "kiki"   | "papa"   2
-pub fn generate_ids<'txn>(
-    rtxn: &'txn RoTxn,
+pub struct IdsMap {
     ids_userids: Database<OwnedType<BEU32>, Str>,
     userids_ids: Database<Str, OwnedType<BEU32>>,
-    userids: &[&str],
-) -> heed::Result<Vec<u32>>
-{
-    // We construct a cursor to get next available ids
-    let ids_iter = ids_userids.iter(rtxn)?;
-    let mut available_ids = DiscoverIds::new(ids_iter)?;
+}
 
-    let mut output_ids = Vec::with_capacity(userids.len());
-    for userid in userids {
-        match userids_ids.get(rtxn, userid)? {
-            Some(id) => output_ids.push(id.get()),
-            None => match available_ids.next().transpose()? {
-                Some(id) => output_ids.push(id),
-                None => break, // this branch must return an error!
-            },
+impl IdsMap {
+    // 0 "hello"  | "coucou" 1
+    // 1 "coucou" | "hello"  0
+    // 2 "papa"   | "kiki"   5
+    // 5 "kiki"   | "papa"   2
+    pub fn generate_ids(&self, rtxn: &RoTxn, userids: &[&str]) -> heed::Result<Vec<u32>> {
+        // We construct a cursor to get next available ids
+        let ids_iter = self.ids_userids.iter(rtxn)?;
+        let mut available_ids = DiscoverIds::new(ids_iter)?;
+
+        let mut output_ids = Vec::with_capacity(userids.len());
+        for userid in userids {
+            match self.userids_ids.get(rtxn, userid)? {
+                Some(id) => output_ids.push(id.get()),
+                None => match available_ids.next().transpose()? {
+                    Some(id) => output_ids.push(id),
+                    None => break, // this branch must return an error!
+                },
+            }
         }
+
+        Ok(output_ids)
     }
 
-    Ok(output_ids)
+    pub fn insert_id(&self, wtxn: &mut RwTxn, id: u32, userid: &str) -> heed::Result<()> {
+        self.ids_userids.put(wtxn, &BEU32::new(id), userid)?;
+        self.userids_ids.put(wtxn, userid, &BEU32::new(id))?;
+        Ok(())
+    }
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -107,28 +114,20 @@ fn main() -> Result<(), Box<dyn Error>> {
     userids_ids.clear(&mut wtxn)?;
     wtxn.commit()?;
 
-    // preregister ids
+    let idsmap = IdsMap { ids_userids, userids_ids };
+
+    // register the ids in the database
     let mut wtxn = env.write_txn()?;
-
-    // register ids in the database
-    ids_userids.put(&mut wtxn, &BEU32::new(0), "hello0")?;
-    ids_userids.put(&mut wtxn, &BEU32::new(1), "hello1")?;
-    // ids_userids.put(&mut wtxn, &BEU32::new(2), "hello2")?;
-    ids_userids.put(&mut wtxn, &BEU32::new(3), "hello3")?;
-    ids_userids.put(&mut wtxn, &BEU32::new(4), "hello4")?;
-
-    // register userids in the database
-    userids_ids.put(&mut wtxn, "hello0", &BEU32::new(0))?;
-    userids_ids.put(&mut wtxn, "hello1", &BEU32::new(1))?;
-    // userids_ids.put(&mut wtxn, "hello2", &BEU32::new(2))?;
-    userids_ids.put(&mut wtxn, "hello3", &BEU32::new(3))?;
-    userids_ids.put(&mut wtxn, "hello4", &BEU32::new(4))?;
-
+    idsmap.insert_id(&mut wtxn, 0, "hello0")?;
+    idsmap.insert_id(&mut wtxn, 1, "hello1")?;
+    // idsmap.insert_id(&mut wtxn, 2, "hello2")?;
+    idsmap.insert_id(&mut wtxn, 3, "hello3")?;
+    idsmap.insert_id(&mut wtxn, 4, "hello4")?;
     wtxn.commit()?;
 
     let rtxn = env.read_txn()?;
     let userids = &["kevin", "lol", "hello0", "hello1", "hello2", "hello3", "hello4"][..];
-    let ids = double_map(&rtxn, ids_userids, userids_ids, userids)?;
+    let ids = idsmap.generate_ids(&rtxn, userids)?;
 
     println!("{:?}", &ids[..]);
     assert_eq!(&ids[..], &[2, 5, 0, 1, 6, 3, 4][..]);
