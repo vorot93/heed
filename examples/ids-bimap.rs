@@ -60,12 +60,13 @@ impl Iterator for DiscoverIds<'_> {
     }
 }
 
-pub struct IdsMap {
+/// A two-way bijective map over two heed databases.
+pub struct IdsBimap {
     ids_userids: Database<OwnedType<BEU32>, Str>,
     userids_ids: Database<Str, OwnedType<BEU32>>,
 }
 
-impl IdsMap {
+impl IdsBimap {
     // 0 "hello"  | "coucou" 1
     // 1 "coucou" | "hello"  0
     // 2 "papa"   | "kiki"   5
@@ -114,20 +115,20 @@ fn main() -> Result<(), Box<dyn Error>> {
     userids_ids.clear(&mut wtxn)?;
     wtxn.commit()?;
 
-    let idsmap = IdsMap { ids_userids, userids_ids };
+    let map = IdsBimap { ids_userids, userids_ids };
 
     // register the ids in the database
     let mut wtxn = env.write_txn()?;
-    idsmap.insert_id(&mut wtxn, 0, "hello0")?;
-    idsmap.insert_id(&mut wtxn, 1, "hello1")?;
-    // idsmap.insert_id(&mut wtxn, 2, "hello2")?;
-    idsmap.insert_id(&mut wtxn, 3, "hello3")?;
-    idsmap.insert_id(&mut wtxn, 4, "hello4")?;
+    map.insert_id(&mut wtxn, 0, "hello0")?;
+    map.insert_id(&mut wtxn, 1, "hello1")?;
+    // map.insert_id(&mut wtxn, 2, "hello2")?;
+    map.insert_id(&mut wtxn, 3, "hello3")?;
+    map.insert_id(&mut wtxn, 4, "hello4")?;
     wtxn.commit()?;
 
     let rtxn = env.read_txn()?;
     let userids = &["kevin", "lol", "hello0", "hello1", "hello2", "hello3", "hello4"][..];
-    let ids = idsmap.generate_ids(&rtxn, userids)?;
+    let ids = map.generate_ids(&rtxn, userids)?;
 
     println!("{:?}", &ids[..]);
     assert_eq!(&ids[..], &[2, 5, 0, 1, 6, 3, 4][..]);
