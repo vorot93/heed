@@ -83,8 +83,8 @@ pub type UntypedDatabase = Database<types::ByteSlice, types::ByteSlice>;
 pub enum Error {
     Io(io::Error),
     Mdb(MdbError),
-    Encoding,
-    Decoding,
+    Encoding(Box<dyn error::Error>),
+    Decoding(Box<dyn error::Error>),
     InvalidDatabaseTyping,
     DatabaseClosing,
 }
@@ -94,8 +94,8 @@ impl fmt::Display for Error {
         match self {
             Error::Io(error) => write!(f, "{}", error),
             Error::Mdb(error) => write!(f, "{}", error),
-            Error::Encoding => f.write_str("error while encoding"),
-            Error::Decoding => f.write_str("error while decoding"),
+            Error::Encoding(error) => write!(f, "error while encoding: {}", error),
+            Error::Decoding(error) => write!(f, "error while decoding: {}", error),
             Error::InvalidDatabaseTyping => {
                 f.write_str("database was previously opened with different types")
             },
