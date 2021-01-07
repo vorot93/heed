@@ -12,23 +12,23 @@ pub trait BytesDecode<'a> {
     fn bytes_decode(bytes: &'a [u8]) -> Option<Self::DItem>;
 }
 
-pub trait Database {
-    type Key;
-    type Data;
+pub trait Database<'t> {
+    type Key: 't;
+    type Data: 't;
     type KeyCodec;
     type DataCodec;
-    type Iter;
+    type Iter: 't;
     type Error;
 
-    fn get<'t, 'a>(&'t self, txn: &'t (), key: &'a Self::Key) -> Result<Option<Self::Data>, Self::Error>
+    fn get<'a>(&'t self, txn: &'t (), key: &'a Self::Key) -> Result<Option<Self::Data>, Self::Error>
     where
         Self::KeyCodec: BytesEncode<'a, EItem = Self::Key>,
         Self::DataCodec: BytesDecode<'t, DItem = Self::Data>,
         Self::Data: 't;
 
-    fn iter<'t, 'a>(&'t self, txn: &'t ()) -> Result<Self::Iter, Self::Error>;
+    fn iter<'a>(&'t self, txn: &'t ()) -> Result<Self::Iter, Self::Error>;
 
-    fn range<'t, 'a, R>(&'t self, txn: &'t (), range: &'a R) -> Result<Self::Iter, Self::Error>
+    fn range<'a, R>(&'t self, txn: &'t (), range: &'a R) -> Result<Self::Iter, Self::Error>
     where
         Self::KeyCodec: BytesEncode<'a, EItem = Self::Key>,
         Self::Key: 'a,
@@ -80,16 +80,16 @@ mod tests {
         }
     }
 
-    impl Database for BTreeMap<Vec<u8>, Vec<u8>> {
+    impl<'t> Database<'t> for BTreeMap<Vec<u8>, Vec<u8>> {
         type Key = u32;
         type Data = u32;
 
         type KeyCodec = U32Codec;
         type DataCodec = U32Codec;
-        type Iter = BTreeMapIter<'static, Self::KeyCodec, Self::DataCodec>;
+        type Iter = BTreeMapIter<'t, Self::KeyCodec, Self::DataCodec>;
         type Error = ();
 
-        fn get<'t, 'a>(&'t self, txn: &'t (), key: &'a Self::Key) -> Result<Option<Self::Data>, Self::Error>
+        fn get<'a>(&'t self, txn: &'t (), key: &'a Self::Key) -> Result<Option<Self::Data>, Self::Error>
         where
             Self::KeyCodec: BytesEncode<'a, EItem = Self::Key>,
             Self::DataCodec: BytesDecode<'t, DItem = Self::Data>,
@@ -105,14 +105,14 @@ mod tests {
             }
         }
 
-        fn iter<'t, 'a>(&'t self, txn: &'t ()) -> Result<Self::Iter, Self::Error> {
+        fn iter<'a>(&'t self, txn: &'t ()) -> Result<Self::Iter, Self::Error> {
             Ok(BTreeMapIter {
                 iter: self.iter(),
                 _phantom: std::marker::PhantomData,
             })
         }
 
-        fn range<'t, 'a, R>(&'t self, txn: &'t (), range: &'a R) -> Result<Self::Iter, Self::Error>
+        fn range<'a, R>(&'t self, txn: &'t (), range: &'a R) -> Result<Self::Iter, Self::Error>
         where
             Self::KeyCodec: BytesEncode<'a, EItem = Self::Key>,
             Self::Key: 'a,
