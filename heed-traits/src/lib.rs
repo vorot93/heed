@@ -1,10 +1,10 @@
 use std::borrow::Cow;
 use std::cmp::Ordering;
 
-pub trait BytesEncode<'a> {
-    type EItem: ?Sized + 'a;
+pub trait BytesEncode {
+    type EItem: ?Sized;
 
-    fn bytes_encode(item: &'a Self::EItem) -> Option<Cow<'a, [u8]>>;
+    fn bytes_encode<'a>(item: &'a Self::EItem) -> Option<Cow<'a, [u8]>>;
 }
 
 pub trait BytesDecode<'a> {

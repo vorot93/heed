@@ -220,9 +220,9 @@ impl<KC, DC> Database<KC, DC> {
     /// wtxn.commit()?;
     /// # Ok(()) }
     /// ```
-    pub fn get<'a, 'txn, T>(&self, txn: &'txn RoTxn<T>, key: &'a KC::EItem) -> Result<Option<DC::DItem>>
+    pub fn get<'txn, T>(&self, txn: &'txn RoTxn<T>, key: &KC::EItem) -> Result<Option<DC::DItem>>
     where
-        KC: BytesEncode<'a>,
+        KC: BytesEncode,
         DC: BytesDecode<'txn>,
     {
         assert_eq!(self.env_ident, txn.env.env_mut_ptr() as usize);
@@ -295,13 +295,13 @@ impl<KC, DC> Database<KC, DC> {
     /// wtxn.commit()?;
     /// # Ok(()) }
     /// ```
-    pub fn get_lower_than<'a, 'txn, T>(
+    pub fn get_lower_than<'txn, T>(
         &self,
         txn: &'txn RoTxn<T>,
-        key: &'a KC::EItem,
+        key: &KC::EItem,
     ) -> Result<Option<(KC::DItem, DC::DItem)>>
     where
-        KC: BytesEncode<'a> + BytesDecode<'txn>,
+        KC: BytesEncode + BytesDecode<'txn>,
         DC: BytesDecode<'txn>,
     {
         assert_eq!(self.env_ident, txn.env.env_mut_ptr() as usize);
@@ -363,13 +363,13 @@ impl<KC, DC> Database<KC, DC> {
     /// wtxn.commit()?;
     /// # Ok(()) }
     /// ```
-    pub fn get_lower_than_or_equal_to<'a, 'txn, T>(
+    pub fn get_lower_than_or_equal_to<'txn, T>(
         &self,
         txn: &'txn RoTxn<T>,
-        key: &'a KC::EItem,
+        key: &KC::EItem,
     ) -> Result<Option<(KC::DItem, DC::DItem)>>
     where
-        KC: BytesEncode<'a> + BytesDecode<'txn>,
+        KC: BytesEncode + BytesDecode<'txn>,
         DC: BytesDecode<'txn>,
     {
         assert_eq!(self.env_ident, txn.env.env_mut_ptr() as usize);
@@ -435,13 +435,13 @@ impl<KC, DC> Database<KC, DC> {
     /// wtxn.commit()?;
     /// # Ok(()) }
     /// ```
-    pub fn get_greater_than<'a, 'txn, T>(
+    pub fn get_greater_than<'txn, T>(
         &self,
         txn: &'txn RoTxn<T>,
-        key: &'a KC::EItem,
+        key: &KC::EItem,
     ) -> Result<Option<(KC::DItem, DC::DItem)>>
     where
-        KC: BytesEncode<'a> + BytesDecode<'txn>,
+        KC: BytesEncode + BytesDecode<'txn>,
         DC: BytesDecode<'txn>,
     {
         assert_eq!(self.env_ident, txn.env.env_mut_ptr() as usize);
@@ -506,13 +506,13 @@ impl<KC, DC> Database<KC, DC> {
     /// wtxn.commit()?;
     /// # Ok(()) }
     /// ```
-    pub fn get_greater_than_or_equal_to<'a, 'txn, T>(
+    pub fn get_greater_than_or_equal_to<'txn, T>(
         &self,
         txn: &'txn RoTxn<T>,
-        key: &'a KC::EItem,
+        key: &KC::EItem,
     ) -> Result<Option<(KC::DItem, DC::DItem)>>
     where
-        KC: BytesEncode<'a> + BytesDecode<'txn>,
+        KC: BytesEncode + BytesDecode<'txn>,
         DC: BytesDecode<'txn>,
     {
         assert_eq!(self.env_ident, txn.env.env_mut_ptr() as usize);
@@ -968,13 +968,13 @@ impl<KC, DC> Database<KC, DC> {
     /// wtxn.commit()?;
     /// # Ok(()) }
     /// ```
-    pub fn range<'a, 'txn, T, R>(
+    pub fn range<'txn, T, R>(
         &self,
         txn: &'txn RoTxn<T>,
-        range: &'a R,
+        range: &R,
     ) -> Result<RoRange<'txn, KC, DC>>
     where
-        KC: BytesEncode<'a>,
+        KC: BytesEncode,
         R: RangeBounds<KC::EItem>,
     {
         assert_eq!(self.env_ident, txn.env.env_mut_ptr() as usize);
@@ -1059,13 +1059,13 @@ impl<KC, DC> Database<KC, DC> {
     /// wtxn.commit()?;
     /// # Ok(()) }
     /// ```
-    pub fn range_mut<'a, 'txn, T, R>(
+    pub fn range_mut<'txn, T, R>(
         &self,
         txn: &'txn mut RwTxn<T>,
-        range: &'a R,
+        range: &R,
     ) -> Result<RwRange<'txn, KC, DC>>
     where
-        KC: BytesEncode<'a>,
+        KC: BytesEncode,
         R: RangeBounds<KC::EItem>,
     {
         assert_eq!(self.env_ident, txn.txn.env.env_mut_ptr() as usize);
@@ -1137,13 +1137,13 @@ impl<KC, DC> Database<KC, DC> {
     /// wtxn.commit()?;
     /// # Ok(()) }
     /// ```
-    pub fn rev_range<'a, 'txn, T, R>(
+    pub fn rev_range<'txn, T, R>(
         &self,
         txn: &'txn RoTxn<T>,
-        range: &'a R,
+        range: &R,
     ) -> Result<RoRevRange<'txn, KC, DC>>
     where
-        KC: BytesEncode<'a>,
+        KC: BytesEncode,
         R: RangeBounds<KC::EItem>,
     {
         assert_eq!(self.env_ident, txn.env.env_mut_ptr() as usize);
@@ -1228,13 +1228,13 @@ impl<KC, DC> Database<KC, DC> {
     /// wtxn.commit()?;
     /// # Ok(()) }
     /// ```
-    pub fn rev_range_mut<'a, 'txn, T, R>(
+    pub fn rev_range_mut<'txn, T, R>(
         &self,
         txn: &'txn mut RwTxn<T>,
-        range: &'a R,
+        range: &R,
     ) -> Result<RwRevRange<'txn, KC, DC>>
     where
-        KC: BytesEncode<'a>,
+        KC: BytesEncode,
         R: RangeBounds<KC::EItem>,
     {
         assert_eq!(self.env_ident, txn.txn.env.env_mut_ptr() as usize);
@@ -1307,13 +1307,13 @@ impl<KC, DC> Database<KC, DC> {
     /// wtxn.commit()?;
     /// # Ok(()) }
     /// ```
-    pub fn prefix_iter<'a, 'txn, T>(
+    pub fn prefix_iter<'txn, T>(
         &self,
         txn: &'txn RoTxn<T>,
-        prefix: &'a KC::EItem,
+        prefix: &KC::EItem,
     ) -> Result<RoPrefix<'txn, KC, DC>>
     where
-        KC: BytesEncode<'a>,
+        KC: BytesEncode,
     {
         assert_eq!(self.env_ident, txn.env.env_mut_ptr() as usize);
         let prefix_bytes = KC::bytes_encode(prefix).ok_or(Error::Encoding)?;
@@ -1375,13 +1375,13 @@ impl<KC, DC> Database<KC, DC> {
     /// wtxn.commit()?;
     /// # Ok(()) }
     /// ```
-    pub fn prefix_iter_mut<'a, 'txn, T>(
+    pub fn prefix_iter_mut<'txn, T>(
         &self,
         txn: &'txn mut RwTxn<T>,
-        prefix: &'a KC::EItem,
+        prefix: &KC::EItem,
     ) -> Result<RwPrefix<'txn, KC, DC>>
     where
-        KC: BytesEncode<'a>,
+        KC: BytesEncode,
     {
         assert_eq!(self.env_ident, txn.env.env_mut_ptr() as usize);
         let prefix_bytes = KC::bytes_encode(prefix).ok_or(Error::Encoding)?;
@@ -1430,13 +1430,13 @@ impl<KC, DC> Database<KC, DC> {
     /// wtxn.commit()?;
     /// # Ok(()) }
     /// ```
-    pub fn rev_prefix_iter<'a, 'txn, T>(
+    pub fn rev_prefix_iter<'txn, T>(
         &self,
         txn: &'txn RoTxn<T>,
-        prefix: &'a KC::EItem,
+        prefix: &KC::EItem,
     ) -> Result<RoRevPrefix<'txn, KC, DC>>
     where
-        KC: BytesEncode<'a>,
+        KC: BytesEncode,
     {
         assert_eq!(self.env_ident, txn.env.env_mut_ptr() as usize);
         let prefix_bytes = KC::bytes_encode(prefix).ok_or(Error::Encoding)?;
@@ -1498,13 +1498,13 @@ impl<KC, DC> Database<KC, DC> {
     /// wtxn.commit()?;
     /// # Ok(()) }
     /// ```
-    pub fn rev_prefix_iter_mut<'a, 'txn, T>(
+    pub fn rev_prefix_iter_mut<'txn, T>(
         &self,
         txn: &'txn mut RwTxn<T>,
-        prefix: &'a KC::EItem,
+        prefix: &KC::EItem,
     ) -> Result<RwRevPrefix<'txn, KC, DC>>
     where
-        KC: BytesEncode<'a>,
+        KC: BytesEncode,
     {
         assert_eq!(self.env_ident, txn.txn.env.env_mut_ptr() as usize);
         let prefix_bytes = KC::bytes_encode(prefix).ok_or(Error::Encoding)?;
@@ -1545,10 +1545,10 @@ impl<KC, DC> Database<KC, DC> {
     /// wtxn.commit()?;
     /// # Ok(()) }
     /// ```
-    pub fn put<'a, T>(&self, txn: &mut RwTxn<T>, key: &'a KC::EItem, data: &'a DC::EItem) -> Result<()>
+    pub fn put<T>(&self, txn: &mut RwTxn<T>, key: &KC::EItem, data: &DC::EItem) -> Result<()>
     where
-        KC: BytesEncode<'a>,
-        DC: BytesEncode<'a>,
+        KC: BytesEncode,
+        DC: BytesEncode,
     {
         assert_eq!(self.env_ident, txn.txn.env.env_mut_ptr() as usize);
 
@@ -1608,10 +1608,10 @@ impl<KC, DC> Database<KC, DC> {
     /// wtxn.commit()?;
     /// # Ok(()) }
     /// ```
-    pub fn append<'a, T>(&self, txn: &mut RwTxn<T>, key: &'a KC::EItem, data: &'a DC::EItem) -> Result<()>
+    pub fn append<T>(&self, txn: &mut RwTxn<T>, key: &KC::EItem, data: &DC::EItem) -> Result<()>
     where
-        KC: BytesEncode<'a>,
-        DC: BytesEncode<'a>,
+        KC: BytesEncode,
+        DC: BytesEncode,
     {
         assert_eq!(self.env_ident, txn.txn.env.env_mut_ptr() as usize);
 
@@ -1676,9 +1676,9 @@ impl<KC, DC> Database<KC, DC> {
     /// wtxn.commit()?;
     /// # Ok(()) }
     /// ```
-    pub fn delete<'a, T>(&self, txn: &mut RwTxn<T>, key: &'a KC::EItem) -> Result<bool>
+    pub fn delete<T>(&self, txn: &mut RwTxn<T>, key: &KC::EItem) -> Result<bool>
     where
-        KC: BytesEncode<'a>,
+        KC: BytesEncode,
     {
         assert_eq!(self.env_ident, txn.txn.env.env_mut_ptr() as usize);
 
@@ -1749,9 +1749,9 @@ impl<KC, DC> Database<KC, DC> {
     /// wtxn.commit()?;
     /// # Ok(()) }
     /// ```
-    pub fn delete_range<'a, 'txn, T, R>(&self, txn: &'txn mut RwTxn<T>, range: &'a R) -> Result<usize>
+    pub fn delete_range<'txn, T, R>(&self, txn: &'txn mut RwTxn<T>, range: &R) -> Result<usize>
     where
-        KC: BytesEncode<'a> + BytesDecode<'txn>,
+        KC: BytesEncode + BytesDecode<'txn>,
         R: RangeBounds<KC::EItem>,
     {
         assert_eq!(self.env_ident, txn.txn.env.env_mut_ptr() as usize);

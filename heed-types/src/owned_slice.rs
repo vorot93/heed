@@ -20,13 +20,13 @@ use heed_traits::{BytesDecode, BytesEncode};
 /// [`CowType`]: crate::CowType
 pub struct OwnedSlice<T>(std::marker::PhantomData<T>);
 
-impl<'a, T: 'a> BytesEncode<'a> for OwnedSlice<T>
+impl<T> BytesEncode for OwnedSlice<T>
 where
     T: AsBytes,
 {
     type EItem = [T];
 
-    fn bytes_encode(item: &'a Self::EItem) -> Option<Cow<[u8]>> {
+    fn bytes_encode(item: &Self::EItem) -> Option<Cow<[u8]>> {
         Some(Cow::Borrowed(<[T] as AsBytes>::as_bytes(item)))
     }
 }
