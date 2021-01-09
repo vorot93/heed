@@ -20,7 +20,7 @@ use heed_traits::{BytesDecode, BytesEncode};
 /// [`CowType`]: crate::CowType
 pub struct OwnedSlice<T>(std::marker::PhantomData<T>);
 
-impl<T> BytesEncode for OwnedSlice<T>
+impl<'x, T: 'x> BytesEncode<'x> for OwnedSlice<T>
 where
     T: AsBytes,
 {

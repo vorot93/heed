@@ -22,7 +22,7 @@ use zerocopy::{AsBytes, FromBytes, LayoutVerified};
 /// [`OwnedSlice`]: crate::OwnedSlice
 pub struct CowSlice<T>(std::marker::PhantomData<T>);
 
-impl<T> BytesEncode for CowSlice<T>
+impl<'x, T: 'x> BytesEncode<'x> for CowSlice<T>
 where
     T: AsBytes,
 {

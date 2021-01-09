@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 use std::cmp::Ordering;
 
-pub trait BytesEncode {
-    type EItem: ?Sized;
+pub trait BytesEncode<'x> {
+    type EItem: ?Sized + 'x;
 
     fn bytes_encode<'a>(item: &'a Self::EItem) -> Option<Cow<'a, [u8]>>;
 }

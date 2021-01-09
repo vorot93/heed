@@ -19,7 +19,7 @@ use zerocopy::{AsBytes, FromBytes, LayoutVerified, Unaligned};
 /// [`CowSlice`]: crate::CowSlice
 pub struct UnalignedType<T>(std::marker::PhantomData<T>);
 
-impl<T> BytesEncode for UnalignedType<T>
+impl<'x, T: 'x> BytesEncode<'x> for UnalignedType<T>
 where
     T: AsBytes + Unaligned,
 {

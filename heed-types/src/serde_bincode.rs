@@ -7,7 +7,7 @@ use std::borrow::Cow;
 /// It can borrow bytes from the original slice.
 pub struct SerdeBincode<T>(std::marker::PhantomData<T>);
 
-impl<T> BytesEncode for SerdeBincode<T>
+impl<'x, T: 'x> BytesEncode<'x> for SerdeBincode<T>
 where
     T: Serialize,
 {
