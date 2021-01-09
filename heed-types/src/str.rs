@@ -5,10 +5,10 @@ use std::borrow::Cow;
 /// Describes an [`str`].
 pub struct Str;
 
-impl BytesEncode<'_> for Str {
-    type EItem = str;
+impl BytesEncode for Str {
+    type EItem<'a> = str;
 
-    fn bytes_encode(item: &Self::EItem) -> Option<Cow<[u8]>> {
+    fn bytes_encode<'a>(item: &'a Self::EItem<'a>) -> Option<Cow<'a, [u8]>> {
         UnalignedSlice::<u8>::bytes_encode(item.as_bytes())
     }
 }

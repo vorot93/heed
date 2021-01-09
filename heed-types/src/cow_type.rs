@@ -28,13 +28,13 @@ use zerocopy::{AsBytes, FromBytes, LayoutVerified};
 /// [`CowSlice`]: crate::CowSlice
 pub struct CowType<T>(std::marker::PhantomData<T>);
 
-impl<'x, T: 'x> BytesEncode<'x> for CowType<T>
+impl<T> BytesEncode for CowType<T>
 where
     T: AsBytes,
 {
-    type EItem = T;
+    type EItem<'a> = T;
 
-    fn bytes_encode(item: &Self::EItem) -> Option<Cow<[u8]>> {
+    fn bytes_encode<'a>(item: &'a Self::EItem<'a>) -> Option<Cow<'a, [u8]>> {
         Some(Cow::Borrowed(<T as AsBytes>::as_bytes(item)))
     }
 }

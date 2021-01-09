@@ -1,10 +1,12 @@
+#![feature(generic_associated_types)]
+
 use std::borrow::Cow;
 use std::cmp::Ordering;
 
-pub trait BytesEncode<'x> {
-    type EItem: ?Sized + 'x;
+pub trait BytesEncode {
+    type EItem<'a>: ?Sized;
 
-    fn bytes_encode<'a>(item: &'a Self::EItem) -> Option<Cow<'a, [u8]>>;
+    fn bytes_encode<'a, 'b>(item: &'b Self::EItem<'a>) -> Option<Cow<'a, [u8]>>;
 }
 
 pub trait BytesDecode<'a> {

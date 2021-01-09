@@ -132,10 +132,10 @@ impl<'txn, KC, DC> RwPrefix<'txn, KC, DC> {
         self.cursor.del_current()
     }
 
-    pub fn put_current<'x>(&mut self, key: &KC::EItem, data: &DC::EItem) -> Result<bool>
+    pub fn put_current<'y, 'x>(&mut self, key: &'y KC::EItem<'x>, data: &'y DC::EItem<'x>) -> Result<bool>
     where
-        KC: BytesEncode<'x>,
-        DC: BytesEncode<'x>,
+        KC: BytesEncode,
+        DC: BytesEncode,
     {
         let key_bytes: Cow<[u8]> = KC::bytes_encode(&key).ok_or(Error::Encoding)?;
         let data_bytes: Cow<[u8]> = DC::bytes_encode(&data).ok_or(Error::Encoding)?;
@@ -346,10 +346,10 @@ impl<'txn, KC, DC> RwRevPrefix<'txn, KC, DC> {
         self.cursor.del_current()
     }
 
-    pub fn put_current<'x>(&mut self, key: &KC::EItem, data: &DC::EItem) -> Result<bool>
+    pub fn put_current<'x>(&mut self, key: &'x KC::EItem<'x>, data: &'x DC::EItem<'x>) -> Result<bool>
     where
-        KC: BytesEncode<'x>,
-        DC: BytesEncode<'x>,
+        KC: BytesEncode,
+        DC: BytesEncode,
     {
         let key_bytes: Cow<[u8]> = KC::bytes_encode(&key).ok_or(Error::Encoding)?;
         let data_bytes: Cow<[u8]> = DC::bytes_encode(&data).ok_or(Error::Encoding)?;
