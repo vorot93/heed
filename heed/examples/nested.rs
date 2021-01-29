@@ -1,11 +1,7 @@
-use std::error::Error;
-use std::fs;
-use std::path::Path;
+use heed::{types::*, Database, EnvOpenOptions};
+use std::{fs, path::Path};
 
-use heed::types::*;
-use heed::{Database, EnvOpenOptions};
-
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> anyhow::Result<()> {
     let path = Path::new("target").join("heed.mdb");
 
     fs::create_dir_all(&path)?;

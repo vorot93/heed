@@ -1,13 +1,9 @@
-use std::error::Error;
-use std::fs;
-use std::path::Path;
-
-use heed::types::*;
-use heed::{Database, EnvOpenOptions};
+use heed::{types::*, Database, EnvOpenOptions};
+use std::{fs, path::Path};
 
 // In this test we are checking that we can clear database entries and
 // write just after in the same transaction without loosing the writes.
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> anyhow::Result<()> {
     let env_path = Path::new("target").join("clear-database.mdb");
 
     let _ = fs::remove_dir_all(&env_path);
@@ -32,7 +28,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     db.put(&mut wtxn, &"And I come back", &"to test things")?;
 
     let mut iter = db.iter(&wtxn)?;
-    assert_eq!(iter.next().transpose()?, Some(("And I come back", "to test things")));
+    assert_eq!(
+        iter.next().transpose()?,
+        Some(("And I come back", "to test things"))
+    );
     assert_eq!(iter.next().transpose()?, None);
 
     drop(iter);
@@ -40,7 +39,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let rtxn = env.read_txn()?;
     let mut iter = db.iter(&rtxn)?;
-    assert_eq!(iter.next().transpose()?, Some(("And I come back", "to test things")));
+    assert_eq!(
+        iter.next().transpose()?,
+        Some(("And I come back", "to test things"))
+    );
     assert_eq!(iter.next().transpose()?, None);
 
     Ok(())
