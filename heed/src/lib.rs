@@ -57,57 +57,47 @@ mod txn;
 
 pub use bytemuck;
 pub use byteorder;
-pub use heed_types as types;
 use heed_traits as traits;
+pub use heed_types as types;
 
-pub use self::database::Database;
-pub use self::env::{CompactionOption, Env, EnvOpenOptions, env_closing_event, EnvClosingEvent};
-pub use self::iter::{RoIter, RoRevIter, RwIter, RwRevIter};
-pub use self::iter::{RoPrefix, RoRevPrefix, RwPrefix, RwRevPrefix};
-pub use self::iter::{RoRange, RoRevRange, RwRange, RwRevRange};
-pub use self::lazy_decode::{LazyDecode, Lazy};
-pub use self::mdb::error::Error as MdbError;
-pub use self::mdb::flags;
-pub use self::traits::{BytesDecode, BytesEncode};
-pub use self::txn::{RoTxn, RwTxn};
-use self::cursor::{RoCursor, RwCursor};
-use self::mdb::ffi::{into_val, from_val};
+use self::{
+    cursor::{RoCursor, RwCursor},
+    mdb::ffi::{from_val, into_val},
+};
+pub use self::{
+    database::Database,
+    env::{env_closing_event, CompactionOption, Env, EnvClosingEvent, EnvOpenOptions},
+    iter::{
+        RoIter, RoPrefix, RoRange, RoRevIter, RoRevPrefix, RoRevRange, RwIter, RwPrefix, RwRange,
+        RwRevIter, RwRevPrefix, RwRevRange,
+    },
+    lazy_decode::{Lazy, LazyDecode},
+    mdb::{error::Error as MdbError, flags},
+    traits::{BytesDecode, BytesEncode},
+    txn::{RoTxn, RwTxn},
+};
 
-use std::{error, fmt, io, result};
-use std::error::Error as StdError;
+use std::{fmt, io, result};
 
 /// An helper type alias for [`Database`]s that are not typed and returns raw bytes.
 pub type UntypedDatabase = Database<types::ByteSlice<'static>, types::ByteSlice<'static>>;
 
 /// An error that encapsulates all possible errors in this crate.
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum Error {
-    Io(io::Error),
+    #[error("`{0}`")]
+    Io(#[from] io::Error),
+    #[error("`{0}`")]
     Mdb(MdbError),
-    Encoding(Box<dyn StdError>),
-    Decoding(Box<dyn StdError>),
+    #[error("error while encoding")]
+    Encoding(anyhow::Error),
+    #[error("error while decoding")]
+    Decoding(anyhow::Error),
+    #[error("database was previously opened with different types")]
     InvalidDatabaseTyping,
+    #[error("database is in a closing phase, you can't open it at the same time")]
     DatabaseClosing,
 }
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Error::Io(error) => write!(f, "{}", error),
-            Error::Mdb(error) => write!(f, "{}", error),
-            Error::Encoding(e) => write!(f, "error while encoding: {}", e),
-            Error::Decoding(e) => write!(f, "error while decoding: {}", e),
-            Error::InvalidDatabaseTyping => {
-                f.write_str("database was previously opened with different types")
-            },
-            Error::DatabaseClosing => {
-                f.write_str("database is in a closing phase, you can't open it at the same time")
-            },
-        }
-    }
-}
-
-impl error::Error for Error {}
 
 impl From<MdbError> for Error {
     fn from(error: MdbError) -> Error {
@@ -115,12 +105,6 @@ impl From<MdbError> for Error {
             MdbError::Other(e) => Error::Io(io::Error::from_raw_os_error(e)),
             _ => Error::Mdb(error),
         }
-    }
-}
-
-impl From<io::Error> for Error {
-    fn from(error: io::Error) -> Error {
-        Error::Io(error)
     }
 }
 

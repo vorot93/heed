@@ -1,14 +1,13 @@
-use std::error::Error;
-use std::fs;
-use std::path::Path;
-
-use heed::byteorder::BE;
-use heed::types::*;
-use heed::bytemuck::{Pod, Zeroable};
-use heed::{Database, EnvOpenOptions};
+use heed::{
+    bytemuck::{Pod, Zeroable},
+    byteorder::BE,
+    types::*,
+    Database, EnvOpenOptions,
+};
 use serde::{Deserialize, Serialize};
+use std::{fs, path::Path};
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> anyhow::Result<()> {
     let path = Path::new("target").join("heed.mdb");
 
     fs::create_dir_all(&path)?;
@@ -78,8 +77,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         bytes: [u8; 12],
     }
 
-    let db: Database<Str, UnalignedType<ZeroBytes>> =
-        env.create_database(Some("simple-struct"))?;
+    let db: Database<Str, UnalignedType<ZeroBytes>> = env.create_database(Some("simple-struct"))?;
 
     let mut wtxn = env.write_txn()?;
 

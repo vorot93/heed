@@ -1,13 +1,9 @@
-use std::error::Error;
-use std::fs;
-use std::path::Path;
-
-use heed::types::*;
-use heed::{Database, EnvOpenOptions};
+use heed::{types::*, Database, EnvOpenOptions};
+use std::{fs, path::Path};
 
 // In this test we are checking that we can append ordered entries in one
 // database even if there is multiple databases which already contain entries.
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> anyhow::Result<()> {
     let env_path = Path::new("target").join("cursor-append.mdb");
 
     let _ = fs::remove_dir_all(&env_path);

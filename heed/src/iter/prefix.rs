@@ -1,14 +1,11 @@
-use std::borrow::Cow;
-use std::marker;
-
-use crate::*;
 use super::{advance_key, retreat_key};
+use crate::*;
+use std::{borrow::Cow, marker};
 
 fn move_on_prefix_end<'txn>(
     cursor: &mut RoCursor<'txn>,
     prefix: &mut Vec<u8>,
-) -> Result<Option<(&'txn [u8], &'txn [u8])>>
-{
+) -> Result<Option<(&'txn [u8], &'txn [u8])>> {
     advance_key(prefix);
     let result = cursor
         .move_on_key_greater_than_or_equal_to(prefix)
@@ -26,7 +23,12 @@ pub struct RoPrefix<'txn, KC, DC> {
 
 impl<'txn, KC, DC> RoPrefix<'txn, KC, DC> {
     pub(crate) fn new(cursor: RoCursor<'txn>, prefix: Vec<u8>) -> RoPrefix<'txn, KC, DC> {
-        RoPrefix { cursor, prefix, move_on_first: true, _phantom: marker::PhantomData }
+        RoPrefix {
+            cursor,
+            prefix,
+            move_on_first: true,
+            _phantom: marker::PhantomData,
+        }
     }
 
     /// Change the codec types of this iterator, specifying the codecs.
@@ -65,7 +67,8 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         let result = if self.move_on_first {
             self.move_on_first = false;
-            self.cursor.move_on_key_greater_than_or_equal_to(&self.prefix)
+            self.cursor
+                .move_on_key_greater_than_or_equal_to(&self.prefix)
         } else {
             self.cursor.move_on_next()
         };
@@ -80,7 +83,7 @@ where
                 } else {
                     None
                 }
-            },
+            }
             Ok(None) => None,
             Err(e) => Some(Err(e)),
         }
@@ -90,10 +93,13 @@ where
         let result = if self.move_on_first {
             move_on_prefix_end(&mut self.cursor, &mut self.prefix)
         } else {
-            match (self.cursor.current(), move_on_prefix_end(&mut self.cursor, &mut self.prefix)) {
+            match (
+                self.cursor.current(),
+                move_on_prefix_end(&mut self.cursor, &mut self.prefix),
+            ) {
                 (Ok(Some((ckey, _))), Ok(Some((key, data)))) if ckey != key => {
                     Ok(Some((key, data)))
-                },
+                }
                 (Ok(_), Ok(_)) => Ok(None),
                 (Err(e), _) | (_, Err(e)) => Err(e),
             }
@@ -109,7 +115,7 @@ where
                 } else {
                     None
                 }
-            },
+            }
             Ok(None) => None,
             Err(e) => Some(Err(e)),
         }
@@ -125,7 +131,12 @@ pub struct RwPrefix<'txn, KC, DC> {
 
 impl<'txn, KC, DC> RwPrefix<'txn, KC, DC> {
     pub(crate) fn new(cursor: RwCursor<'txn>, prefix: Vec<u8>) -> RwPrefix<'txn, KC, DC> {
-        RwPrefix { cursor, prefix, move_on_first: true, _phantom: marker::PhantomData }
+        RwPrefix {
+            cursor,
+            prefix,
+            move_on_first: true,
+            _phantom: marker::PhantomData,
+        }
     }
 
     pub fn del_current(&mut self) -> Result<bool> {
@@ -178,7 +189,8 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         let result = if self.move_on_first {
             self.move_on_first = false;
-            self.cursor.move_on_key_greater_than_or_equal_to(&self.prefix)
+            self.cursor
+                .move_on_key_greater_than_or_equal_to(&self.prefix)
         } else {
             self.cursor.move_on_next()
         };
@@ -193,7 +205,7 @@ where
                 } else {
                     None
                 }
-            },
+            }
             Ok(None) => None,
             Err(e) => Some(Err(e)),
         }
@@ -203,10 +215,13 @@ where
         let result = if self.move_on_first {
             move_on_prefix_end(&mut self.cursor, &mut self.prefix)
         } else {
-            match (self.cursor.current(), move_on_prefix_end(&mut self.cursor, &mut self.prefix)) {
+            match (
+                self.cursor.current(),
+                move_on_prefix_end(&mut self.cursor, &mut self.prefix),
+            ) {
                 (Ok(Some((ckey, _))), Ok(Some((key, data)))) if ckey != key => {
                     Ok(Some((key, data)))
-                },
+                }
                 (Ok(_), Ok(_)) => Ok(None),
                 (Err(e), _) | (_, Err(e)) => Err(e),
             }
@@ -222,7 +237,7 @@ where
                 } else {
                     None
                 }
-            },
+            }
             Ok(None) => None,
             Err(e) => Some(Err(e)),
         }
@@ -238,7 +253,12 @@ pub struct RoRevPrefix<'txn, KC, DC> {
 
 impl<'txn, KC, DC> RoRevPrefix<'txn, KC, DC> {
     pub(crate) fn new(cursor: RoCursor<'txn>, prefix: Vec<u8>) -> RoRevPrefix<'txn, KC, DC> {
-        RoRevPrefix { cursor, prefix, move_on_last: true, _phantom: marker::PhantomData }
+        RoRevPrefix {
+            cursor,
+            prefix,
+            move_on_last: true,
+            _phantom: marker::PhantomData,
+        }
     }
 
     /// Change the codec types of this iterator, specifying the codecs.
@@ -292,7 +312,7 @@ where
                 } else {
                     None
                 }
-            },
+            }
             Ok(None) => None,
             Err(e) => Some(Err(e)),
         }
@@ -300,14 +320,17 @@ where
 
     fn last(mut self) -> Option<Self::Item> {
         let result = if self.move_on_last {
-            self.cursor.move_on_key_greater_than_or_equal_to(&self.prefix)
+            self.cursor
+                .move_on_key_greater_than_or_equal_to(&self.prefix)
         } else {
             let current = self.cursor.current();
-            let start = self.cursor.move_on_key_greater_than_or_equal_to(&self.prefix);
+            let start = self
+                .cursor
+                .move_on_key_greater_than_or_equal_to(&self.prefix);
             match (current, start) {
                 (Ok(Some((ckey, _))), Ok(Some((key, data)))) if ckey != key => {
                     Ok(Some((key, data)))
-                },
+                }
                 (Ok(_), Ok(_)) => Ok(None),
                 (Err(e), _) | (_, Err(e)) => Err(e),
             }
@@ -323,7 +346,7 @@ where
                 } else {
                     None
                 }
-            },
+            }
             Ok(None) => None,
             Err(e) => Some(Err(e)),
         }
@@ -339,7 +362,12 @@ pub struct RwRevPrefix<'txn, KC, DC> {
 
 impl<'txn, KC, DC> RwRevPrefix<'txn, KC, DC> {
     pub(crate) fn new(cursor: RwCursor<'txn>, prefix: Vec<u8>) -> RwRevPrefix<'txn, KC, DC> {
-        RwRevPrefix { cursor, prefix, move_on_last: true, _phantom: marker::PhantomData }
+        RwRevPrefix {
+            cursor,
+            prefix,
+            move_on_last: true,
+            _phantom: marker::PhantomData,
+        }
     }
 
     pub fn del_current(&mut self) -> Result<bool> {
@@ -407,7 +435,7 @@ where
                 } else {
                     None
                 }
-            },
+            }
             Ok(None) => None,
             Err(e) => Some(Err(e)),
         }
@@ -415,14 +443,17 @@ where
 
     fn last(mut self) -> Option<Self::Item> {
         let result = if self.move_on_last {
-            self.cursor.move_on_key_greater_than_or_equal_to(&self.prefix)
+            self.cursor
+                .move_on_key_greater_than_or_equal_to(&self.prefix)
         } else {
             let current = self.cursor.current();
-            let start = self.cursor.move_on_key_greater_than_or_equal_to(&self.prefix);
+            let start = self
+                .cursor
+                .move_on_key_greater_than_or_equal_to(&self.prefix);
             match (current, start) {
                 (Ok(Some((ckey, _))), Ok(Some((key, data)))) if ckey != key => {
                     Ok(Some((key, data)))
-                },
+                }
                 (Ok(_), Ok(_)) => Ok(None),
                 (Err(e), _) | (_, Err(e)) => Err(e),
             }
@@ -438,7 +469,7 @@ where
                 } else {
                     None
                 }
-            },
+            }
             Ok(None) => None,
             Err(e) => Some(Err(e)),
         }

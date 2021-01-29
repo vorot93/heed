@@ -1,8 +1,5 @@
-use std::error::Error as StdError;
+use crate::{Error, Result};
 use std::marker;
-use std::result::Result as StdResult;
-
-use crate::{Result, Error};
 
 /// Lazily decode the data bytes, it can be used to avoid CPU intensive decoding
 /// before making sure we really need to decode it (e.g. based on the key).
@@ -12,8 +9,11 @@ pub struct LazyDecode<C>(marker::PhantomData<C>);
 impl<'a, C: 'static> heed_traits::BytesDecode<'a> for LazyDecode<C> {
     type DItem = Lazy<'a, C>;
 
-    fn bytes_decode(bytes: &'a [u8]) -> StdResult<Self::DItem, Box<dyn StdError>> {
-        Ok(Lazy { data: bytes, _phantom: marker::PhantomData })
+    fn bytes_decode(bytes: &'a [u8]) -> anyhow::Result<Self::DItem> {
+        Ok(Lazy {
+            data: bytes,
+            _phantom: marker::PhantomData,
+        })
     }
 }
 

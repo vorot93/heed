@@ -23,13 +23,13 @@
 
 mod cow_slice;
 mod cow_type;
+pub mod integer;
 mod owned_slice;
 mod owned_type;
 mod str;
 mod unaligned_slice;
 mod unaligned_type;
 mod unit;
-pub mod integer;
 
 #[cfg(feature = "serde-bincode")]
 mod serde_bincode;
@@ -37,17 +37,11 @@ mod serde_bincode;
 #[cfg(feature = "serde-json")]
 mod serde_json;
 
-pub use self::cow_slice::CowSlice;
-pub use self::cow_type::CowType;
-pub use self::integer::*;
-pub use self::owned_slice::OwnedSlice;
-pub use self::owned_type::OwnedType;
-pub use self::str::Str;
-pub use self::unaligned_slice::UnalignedSlice;
-pub use self::unaligned_type::UnalignedType;
-pub use self::unit::Unit;
-
-use std::error::Error;
+pub use self::{
+    cow_slice::CowSlice, cow_type::CowType, integer::*, owned_slice::OwnedSlice,
+    owned_type::OwnedType, str::Str, unaligned_slice::UnalignedSlice,
+    unaligned_type::UnalignedType, unit::Unit,
+};
 
 /// Describes a slice of bytes `[u8]` that is totally
 /// borrowed and doesn't depends on any [memory alignment].
@@ -64,7 +58,7 @@ pub struct DecodeIgnore;
 impl heed_traits::BytesDecode<'_> for DecodeIgnore {
     type DItem = ();
 
-    fn bytes_decode(_bytes: &[u8]) -> Result<Self::DItem, Box<dyn Error>> {
+    fn bytes_decode(_bytes: &[u8]) -> anyhow::Result<Self::DItem> {
         Ok(())
     }
 }

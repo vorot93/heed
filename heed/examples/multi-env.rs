@@ -1,11 +1,7 @@
-use std::error::Error;
-use std::fs;
-use std::path::Path;
+use heed::{types::*, Database, EnvOpenOptions};
+use std::{fs, path::Path};
 
-use heed::types::*;
-use heed::{Database, EnvOpenOptions};
-
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> anyhow::Result<()> {
     let env1_path = Path::new("target").join("env1.mdb");
     let env2_path = Path::new("target").join("env2.mdb");
 

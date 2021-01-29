@@ -9,3 +9,4 @@ readme = "../README.md"
 edition = "2018"
 
 [dependencies]
+anyhow = { version = "1", default-features = false }
