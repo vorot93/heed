@@ -845,7 +845,7 @@ impl<KC, DC> Database<KC, DC> {
     /// wtxn.commit()?;
     /// # Ok(()) }
     /// ```
-    pub fn iter_mut<'txn, T>(&self, txn: &'txn mut RwTxn<T>) -> Result<RwIter<'txn, KC, DC>> {
+    pub fn iter_mut<'txn, T>(&self, txn: &'txn RwTxn<T>) -> Result<RwIter<'txn, KC, DC>> {
         assert_eq!(self.env_ident, txn.txn.env.env_mut_ptr() as usize);
         RwCursor::new(txn, self.dbi).map(|cursor| RwIter::new(cursor))
     }
@@ -941,7 +941,7 @@ impl<KC, DC> Database<KC, DC> {
     /// wtxn.commit()?;
     /// # Ok(()) }
     /// ```
-    pub fn rev_iter_mut<'txn, T>(&self, txn: &'txn mut RwTxn<T>) -> Result<RwRevIter<'txn, KC, DC>> {
+    pub fn rev_iter_mut<'txn, T>(&self, txn: &'txn RwTxn<T>) -> Result<RwRevIter<'txn, KC, DC>> {
         assert_eq!(self.env_ident, txn.env.env_mut_ptr() as usize);
         RwCursor::new(txn, self.dbi).map(|cursor| RwRevIter::new(cursor))
     }
@@ -1078,7 +1078,7 @@ impl<KC, DC> Database<KC, DC> {
     /// ```
     pub fn range_mut<'txn, T, R>(
         &self,
-        txn: &'txn mut RwTxn<T>,
+        txn: &'txn RwTxn<T>,
         range: R,
     ) -> Result<RwRange<'txn, KC, DC>>
     where
@@ -1247,7 +1247,7 @@ impl<KC, DC> Database<KC, DC> {
     /// ```
     pub fn rev_range_mut<'txn, T, R>(
         &self,
-        txn: &'txn mut RwTxn<T>,
+        txn: &'txn RwTxn<T>,
         range: R,
     ) -> Result<RwRevRange<'txn, KC, DC>>
     where
@@ -1394,7 +1394,7 @@ impl<KC, DC> Database<KC, DC> {
     /// ```
     pub fn prefix_iter_mut<'txn, T>(
         &self,
-        txn: &'txn mut RwTxn<T>,
+        txn: &'txn RwTxn<T>,
         prefix: &KC::EItem,
     ) -> Result<RwPrefix<'txn, KC, DC>>
     where
@@ -1517,7 +1517,7 @@ impl<KC, DC> Database<KC, DC> {
     /// ```
     pub fn rev_prefix_iter_mut<'txn, T>(
         &self,
-        txn: &'txn mut RwTxn<T>,
+        txn: &'txn RwTxn<T>,
         prefix: &KC::EItem,
     ) -> Result<RwRevPrefix<'txn, KC, DC>>
     where
@@ -1766,7 +1766,7 @@ impl<KC, DC> Database<KC, DC> {
     /// wtxn.commit()?;
     /// # Ok(()) }
     /// ```
-    pub fn delete_range<'txn, T, R>(&self, txn: &'txn mut RwTxn<T>, range: R) -> Result<usize>
+    pub fn delete_range<'txn, T, R>(&self, txn: &'txn RwTxn<T>, range: R) -> Result<usize>
     where
         KC: BytesEncode + BytesDecode<'txn>,
         R: RangeBounds<KC::EItem>,
