@@ -390,7 +390,10 @@ impl Env {
         RwTxn::<T>::new(self)
     }
 
-    pub fn nested_write_txn<'e, 'p: 'e, T>(&'e self, parent: &'p mut RwTxn<T>) -> Result<RwTxn<'e, 'p, T>> {
+    pub fn nested_write_txn<'p, 'e: 'p, T>(
+        &'e self,
+        parent: &'p mut RwTxn<T>,
+    ) -> Result<RwTxn<'e, 'p, T>> {
         RwTxn::nested(self, parent)
     }
 

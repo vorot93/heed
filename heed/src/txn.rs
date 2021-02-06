@@ -100,10 +100,10 @@ impl<'e, T> RwTxn<'e, 'e, T> {
         })
     }
 
-    pub(crate) fn nested<'p: 'e>(
-        env: &'e Env,
-        parent: &'p mut RwTxn<T>,
-    ) -> Result<RwTxn<'e, 'p, T>> {
+    pub(crate) fn nested<'p>(env: &'e Env, parent: &'p mut RwTxn<T>) -> Result<RwTxn<'e, 'p, T>>
+    where
+        'e: 'p,
+    {
         let mut txn: *mut ffi::MDB_txn = ptr::null_mut();
         let parent_ptr: *mut ffi::MDB_txn = parent.txn.txn;
 
