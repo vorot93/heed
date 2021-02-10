@@ -1,30 +1,35 @@
-use std::any::TypeId;
-use std::collections::hash_map::{Entry, HashMap};
-use std::ffi::CString;
-use std::fs::File;
-use std::path::{Path, PathBuf};
-use std::sync::{Arc, RwLock};
-use std::time::Duration;
-use std::{io, ptr, sync};
 #[cfg(windows)]
 use std::ffi::OsStr;
 #[cfg(unix)]
 use std::os::unix::ffi::OsStrExt;
+use std::{
+    any::TypeId,
+    collections::hash_map::{Entry, HashMap},
+    ffi::CString,
+    fs::File,
+    io,
+    path::{Path, PathBuf},
+    ptr, sync,
+    sync::{Arc, RwLock},
+    time::Duration,
+};
 
 use once_cell::sync::Lazy;
 use synchronoise::event::SignalEvent;
 
-use crate::flags::Flags;
-use crate::mdb::error::mdb_result;
-use crate::{Database, Error, Result, RoTxn, RwTxn};
-use crate::mdb::ffi;
+use crate::{
+    flags::Flags,
+    mdb::{error::mdb_result, ffi},
+    Database, Error, Result, RoTxn, RwTxn,
+};
 
 /// The list of opened environments, the value is an optional environment, it is None
 /// when someone asks to close the environment, closing is a two-phase step, to make sure
 /// noone tries to open the same environment between these two phases.
 ///
 /// Trying to open a None marked environment returns an error to the user trying to open it.
-static OPENED_ENV: Lazy<RwLock<HashMap<PathBuf, (Option<Env>, Arc<SignalEvent>)>>> = Lazy::new(RwLock::default);
+static OPENED_ENV: Lazy<RwLock<HashMap<PathBuf, (Option<Env>, Arc<SignalEvent>)>>> =
+    Lazy::new(RwLock::default);
 
 // Thanks to the mozilla/rkv project
 // Workaround the UNC path on Windows, see https://github.com/rust-lang/rust/issues/42869.
@@ -37,8 +42,10 @@ fn canonicalize_path(path: &Path) -> io::Result<PathBuf> {
 #[cfg(windows)]
 fn canonicalize_path(path: &Path) -> io::Result<PathBuf> {
     let canonical = path.canonicalize()?;
-    let url = url::Url::from_file_path(&canonical).map_err(|_e| io::Error::new(io::ErrorKind::Other, "URL passing error"))?;
-    url.to_file_path().map_err(|_e| io::Error::new(io::ErrorKind::Other, "path canonicalization error"))
+    let url = url::Url::from_file_path(&canonical)
+        .map_err(|_e| io::Error::new(io::ErrorKind::Other, "URL passing error"))?;
+    url.to_file_path()
+        .map_err(|_e| io::Error::new(io::ErrorKind::Other, "path canonicalization error"))
 }
 
 #[cfg(windows)]
@@ -166,9 +173,13 @@ impl EnvOpenOptions {
                         if size % page_size::get() != 0 {
                             let msg = format!(
                                 "map size ({}) must be a multiple of the system page size ({})",
-                                size, page_size::get()
+                                size,
+                                page_size::get()
                             );
-                            return Err(Error::Io(io::Error::new(io::ErrorKind::InvalidInput, msg)));
+                            return Err(Error::Io(io::Error::new(
+                                io::ErrorKind::InvalidInput,
+                                msg,
+                            )));
                         }
                         mdb_result(ffi::mdb_env_set_mapsize(env, size))?;
                     }
@@ -190,12 +201,8 @@ impl EnvOpenOptions {
                         self.flags
                     };
 
-                    let result = mdb_result(ffi::mdb_env_open(
-                        env,
-                        path_str.as_ptr(),
-                        flags,
-                        0o600,
-                    ));
+                    let result =
+                        mdb_result(ffi::mdb_env_open(env, path_str.as_ptr(), flags, 0o600));
 
                     match result {
                         Ok(()) => {
@@ -223,7 +230,8 @@ impl EnvOpenOptions {
 /// Returns a struct that allows to wait for the effective closing of an environment.
 pub fn env_closing_event<P: AsRef<Path>>(path: P) -> Option<EnvClosingEvent> {
     let lock = OPENED_ENV.read().unwrap();
-    lock.get(path.as_ref()).map(|(_env, se)| EnvClosingEvent(se.clone()))
+    lock.get(path.as_ref())
+        .map(|(_env, se)| EnvClosingEvent(se.clone()))
 }
 
 #[derive(Clone)]
@@ -246,7 +254,9 @@ impl Drop for EnvInner {
         match lock.remove(&self.path) {
             None => panic!("It seems another env closed this env before"),
             Some((_, signal_event)) => {
-                unsafe { let _ = ffi::mdb_env_close(self.env); }
+                unsafe {
+                    let _ = ffi::mdb_env_close(self.env);
+                }
                 // We signal to all the waiters that we have closed the env.
                 signal_event.signal();
             }
@@ -410,7 +420,9 @@ impl Env {
         let file = File::create(&path)?;
         let fd = get_file_fd(&file);
 
-        unsafe { self.copy_to_fd(fd, option)?; }
+        unsafe {
+            self.copy_to_fd(fd, option)?;
+        }
 
         // We reopen the file to make sure the cursor is at the start,
         // even a seek to start doesn't work properly.
@@ -419,8 +431,16 @@ impl Env {
         Ok(file)
     }
 
-    pub unsafe fn copy_to_fd(&self, fd: ffi::mdb_filehandle_t, option: CompactionOption) -> Result<()> {
-        let flags = if let CompactionOption::Enabled = option { ffi::MDB_CP_COMPACT } else { 0 };
+    pub unsafe fn copy_to_fd(
+        &self,
+        fd: ffi::mdb_filehandle_t,
+        option: CompactionOption,
+    ) -> Result<()> {
+        let flags = if let CompactionOption::Enabled = option {
+            ffi::MDB_CP_COMPACT
+        } else {
+            0
+        };
 
         mdb_result(ffi::mdb_env_copy2fd(self.0.env, fd, flags))?;
 
@@ -499,18 +519,15 @@ impl EnvClosingEvent {
 mod tests {
     #[test]
     fn close_env() {
-        use std::{fs, thread};
-        use std::time::Duration;
-        use std::path::Path;
-        use crate::EnvOpenOptions;
-        use crate::types::*;
-        use crate::env_closing_event;
+        use crate::{env_closing_event, types::*, EnvOpenOptions};
+        use std::{fs, path::Path, thread, time::Duration};
 
         fs::create_dir_all(Path::new("target").join("close-env.mdb")).unwrap();
         let env = EnvOpenOptions::new()
             .map_size(10 * 1024 * 1024) // 10MB
             .max_dbs(30)
-            .open(Path::new("target").join("close-env.mdb")).unwrap();
+            .open(Path::new("target").join("close-env.mdb"))
+            .unwrap();
 
         // Force a thread to keep the env for 1 second.
         let env_cloned = env.clone();
