@@ -60,11 +60,8 @@ pub use byteorder;
 use heed_traits as traits;
 pub use heed_types as types;
 
-use self::{
-    cursor::{RoCursor, RwCursor},
-    mdb::ffi::{from_val, into_val},
-};
 pub use self::{
+    cursor::{RoCursor, RwCursor},
     database::Database,
     env::{env_closing_event, CompactionOption, Env, EnvClosingEvent, EnvOpenOptions},
     iter::{
@@ -72,7 +69,11 @@ pub use self::{
         RwRevIter, RwRevPrefix, RwRevRange,
     },
     lazy_decode::{Lazy, LazyDecode},
-    mdb::{error::Error as MdbError, flags},
+    mdb::{
+        error::Error as MdbError,
+        ffi::{from_val, into_val},
+        flags,
+    },
     traits::{BytesDecode, BytesEncode},
     txn::{RoTxn, RwTxn},
 };
