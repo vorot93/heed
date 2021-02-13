@@ -1,9 +1,13 @@
-use std::ops::{Deref, DerefMut};
-use std::{marker, mem, ptr};
+use std::{
+    marker, mem,
+    ops::{Deref, DerefMut},
+    ptr,
+};
 
-use crate::*;
-use crate::mdb::error::mdb_result;
-use crate::mdb::ffi;
+use crate::{
+    mdb::{error::mdb_result, ffi},
+    *,
+};
 
 pub struct RoCursor<'txn> {
     cursor: *mut ffi::MDB_cursor,
@@ -22,157 +26,67 @@ impl<'txn> RoCursor<'txn> {
         })
     }
 
-    pub fn current(&mut self) -> Result<Option<(&'txn [u8], &'txn [u8])>> {
-        let mut key_val = mem::MaybeUninit::uninit();
+    unsafe fn get(
+        &mut self,
+        op: ffi::MDB_cursor_op,
+        key: Option<&[u8]>,
+    ) -> Result<Option<(&'txn [u8], &'txn [u8])>> {
         let mut data_val = mem::MaybeUninit::uninit();
 
-        // Move the cursor on the first database key
-        let result = unsafe {
-            mdb_result(ffi::mdb_cursor_get(
-                self.cursor,
-                key_val.as_mut_ptr(),
-                data_val.as_mut_ptr(),
-                ffi::cursor_op::MDB_GET_CURRENT,
-            ))
+        let mut key_val = if let Some(key) = key {
+            mem::MaybeUninit::new(crate::into_val(key))
+        } else {
+            mem::MaybeUninit::uninit()
         };
+
+        let result = mdb_result(ffi::mdb_cursor_get(
+            self.cursor,
+            key_val.as_mut_ptr(),
+            data_val.as_mut_ptr(),
+            op,
+        ));
 
         match result {
             Ok(()) => {
-                let key = unsafe { crate::from_val(key_val.assume_init()) };
-                let data = unsafe { crate::from_val(data_val.assume_init()) };
+                let key = crate::from_val(key_val.assume_init());
+                let data = crate::from_val(data_val.assume_init());
                 Ok(Some((key, data)))
             }
             Err(e) if e.not_found() => Ok(None),
             Err(e) => Err(e.into()),
         }
+    }
+
+    pub fn current(&mut self) -> Result<Option<(&'txn [u8], &'txn [u8])>> {
+        unsafe { self.get(ffi::cursor_op::MDB_GET_CURRENT, None) }
     }
 
     pub fn move_on_first(&mut self) -> Result<Option<(&'txn [u8], &'txn [u8])>> {
-        let mut key_val = mem::MaybeUninit::uninit();
-        let mut data_val = mem::MaybeUninit::uninit();
-
         // Move the cursor on the first database key
-        let result = unsafe {
-            mdb_result(ffi::mdb_cursor_get(
-                self.cursor,
-                key_val.as_mut_ptr(),
-                data_val.as_mut_ptr(),
-                ffi::cursor_op::MDB_FIRST,
-            ))
-        };
-
-        match result {
-            Ok(()) => {
-                let key = unsafe { crate::from_val(key_val.assume_init()) };
-                let data = unsafe { crate::from_val(data_val.assume_init()) };
-                Ok(Some((key, data)))
-            }
-            Err(e) if e.not_found() => Ok(None),
-            Err(e) => Err(e.into()),
-        }
+        unsafe { self.get(ffi::cursor_op::MDB_FIRST, None) }
     }
 
     pub fn move_on_last(&mut self) -> Result<Option<(&'txn [u8], &'txn [u8])>> {
-        let mut key_val = mem::MaybeUninit::uninit();
-        let mut data_val = mem::MaybeUninit::uninit();
-
         // Move the cursor on the first database key
-        let result = unsafe {
-            mdb_result(ffi::mdb_cursor_get(
-                self.cursor,
-                key_val.as_mut_ptr(),
-                data_val.as_mut_ptr(),
-                ffi::cursor_op::MDB_LAST,
-            ))
-        };
-
-        match result {
-            Ok(()) => {
-                let key = unsafe { crate::from_val(key_val.assume_init()) };
-                let data = unsafe { crate::from_val(data_val.assume_init()) };
-                Ok(Some((key, data)))
-            }
-            Err(e) if e.not_found() => Ok(None),
-            Err(e) => Err(e.into()),
-        }
+        unsafe { self.get(ffi::cursor_op::MDB_LAST, None) }
     }
 
     pub fn move_on_key_greater_than_or_equal_to(
         &mut self,
         key: &[u8],
     ) -> Result<Option<(&'txn [u8], &'txn [u8])>> {
-        let mut key_val = unsafe { crate::into_val(&key) };
-        let mut data_val = mem::MaybeUninit::uninit();
-
         // Move the cursor to the specified key
-        let result = unsafe {
-            mdb_result(ffi::mdb_cursor_get(
-                self.cursor,
-                &mut key_val,
-                data_val.as_mut_ptr(),
-                ffi::cursor_op::MDB_SET_RANGE,
-            ))
-        };
-
-        match result {
-            Ok(()) => {
-                let key = unsafe { crate::from_val(key_val) };
-                let data = unsafe { crate::from_val(data_val.assume_init()) };
-                Ok(Some((key, data)))
-            }
-            Err(e) if e.not_found() => Ok(None),
-            Err(e) => Err(e.into()),
-        }
+        unsafe { self.get(ffi::cursor_op::MDB_SET_RANGE, Some(key)) }
     }
 
     pub fn move_on_prev(&mut self) -> Result<Option<(&'txn [u8], &'txn [u8])>> {
-        let mut key_val = mem::MaybeUninit::uninit();
-        let mut data_val = mem::MaybeUninit::uninit();
-
         // Move the cursor to the previous non-dup key
-        let result = unsafe {
-            mdb_result(ffi::mdb_cursor_get(
-                self.cursor,
-                key_val.as_mut_ptr(),
-                data_val.as_mut_ptr(),
-                ffi::cursor_op::MDB_PREV,
-            ))
-        };
-
-        match result {
-            Ok(()) => {
-                let key = unsafe { crate::from_val(key_val.assume_init()) };
-                let data = unsafe { crate::from_val(data_val.assume_init()) };
-                Ok(Some((key, data)))
-            }
-            Err(e) if e.not_found() => Ok(None),
-            Err(e) => Err(e.into()),
-        }
+        unsafe { self.get(ffi::cursor_op::MDB_PREV, None) }
     }
 
     pub fn move_on_next(&mut self) -> Result<Option<(&'txn [u8], &'txn [u8])>> {
-        let mut key_val = mem::MaybeUninit::uninit();
-        let mut data_val = mem::MaybeUninit::uninit();
-
         // Move the cursor to the next non-dup key
-        let result = unsafe {
-            mdb_result(ffi::mdb_cursor_get(
-                self.cursor,
-                key_val.as_mut_ptr(),
-                data_val.as_mut_ptr(),
-                ffi::cursor_op::MDB_NEXT,
-            ))
-        };
-
-        match result {
-            Ok(()) => {
-                let key = unsafe { crate::from_val(key_val.assume_init()) };
-                let data = unsafe { crate::from_val(data_val.assume_init()) };
-                Ok(Some((key, data)))
-            }
-            Err(e) if e.not_found() => Ok(None),
-            Err(e) => Err(e.into()),
-        }
+        unsafe { self.get(ffi::cursor_op::MDB_NEXT, None) }
     }
 }
 
