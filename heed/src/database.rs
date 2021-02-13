@@ -755,6 +755,16 @@ impl<KC, DC> Database<KC, DC> {
         }
     }
 
+    pub fn cursor<'txn, T>(&self, txn: &'txn RoTxn<T>) -> Result<RoCursor<'txn>> {
+        assert_eq!(self.env_ident, txn.env.env_mut_ptr() as usize);
+        RoCursor::new(txn, self.dbi)
+    }
+
+    pub fn cursor_mut<'txn, T>(&self, txn: &'txn RwTxn<T>) -> Result<RwCursor<'txn>> {
+        assert_eq!(self.env_ident, txn.txn.env.env_mut_ptr() as usize);
+        RwCursor::new(txn, self.dbi)
+    }
+
     /// Return a lexicographically ordered iterator of all key-value pairs in this database.
     ///
     /// ```
@@ -792,8 +802,7 @@ impl<KC, DC> Database<KC, DC> {
     /// # Ok(()) }
     /// ```
     pub fn iter<'txn, T>(&self, txn: &'txn RoTxn<T>) -> Result<RoIter<'txn, KC, DC>> {
-        assert_eq!(self.env_ident, txn.env.env_mut_ptr() as usize);
-        RoCursor::new(txn, self.dbi).map(|cursor| RoIter::new(cursor))
+        self.cursor(txn).map(|cursor| RoIter::new(cursor))
     }
 
     /// Return a mutable lexicographically ordered iterator of all key-value pairs in this database.
@@ -846,8 +855,7 @@ impl<KC, DC> Database<KC, DC> {
     /// # Ok(()) }
     /// ```
     pub fn iter_mut<'txn, T>(&self, txn: &'txn RwTxn<T>) -> Result<RwIter<'txn, KC, DC>> {
-        assert_eq!(self.env_ident, txn.txn.env.env_mut_ptr() as usize);
-        RwCursor::new(txn, self.dbi).map(|cursor| RwIter::new(cursor))
+        self.cursor_mut(txn).map(|cursor| RwIter::new(cursor))
     }
 
     /// Return a reversed lexicographically ordered iterator of all key-value pairs in this database.
