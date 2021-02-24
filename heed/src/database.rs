@@ -680,26 +680,24 @@ impl<KC, DC> Database<KC, DC> {
     /// # Ok(()) }
     /// ```
     pub fn len<'txn, T>(&self, txn: &'txn RoTxn<T>) -> Result<u64> {
+        Ok(self.stat(txn)?.ms_entries)
+    }
+
+    pub fn stat<'txn, T>(&self, txn: &'txn RoTxn<T>) -> Result<ffi::MDB_Stat> {
         assert_eq!(self.env_ident, txn.env.env_mut_ptr() as usize);
 
         let mut db_stat = mem::MaybeUninit::uninit();
 
-        let result = unsafe {
+        unsafe {
             mdb_result(ffi::mdb_stat(
                 txn.txn,
                 self.dbi,
                 db_stat.as_mut_ptr(),
                 std::mem::size_of::<ffi::MDB_Stat>(),
             ))
-        };
+        }?;
 
-        match result {
-            Ok(()) => {
-                let stats = unsafe { db_stat.assume_init() };
-                Ok(stats.ms_entries as u64)
-            }
-            Err(e) => Err(e.into()),
-        }
+        Ok(unsafe { db_stat.assume_init() })
     }
 
     /// Returns `true` if and only if this database is empty.
