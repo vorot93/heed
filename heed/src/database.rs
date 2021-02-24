@@ -1,12 +1,15 @@
-use std::ops::Bound;
-use std::borrow::Cow;
-use std::{marker, mem, ptr};
-use std::ops::RangeBounds;
+use std::{
+    borrow::Cow,
+    marker, mem,
+    ops::{Bound, RangeBounds},
+    ptr,
+};
 
-use crate::*;
-use crate::mdb::error::mdb_result;
-use crate::mdb::ffi;
-use crate::types::DecodeIgnore;
+use crate::{
+    mdb::{error::mdb_result, ffi},
+    types::DecodeIgnore,
+    *,
+};
 
 /// A typed database that accepts only the types it was created with.
 ///
@@ -126,14 +129,17 @@ pub struct Database<KC, DC> {
 
 impl<KC, DC> Database<KC, DC> {
     pub(crate) fn new(env_ident: usize, dbi: ffi::MDB_dbi) -> Database<KC, DC> {
-        Database { env_ident, dbi, marker: std::marker::PhantomData }
+        Database {
+            env_ident,
+            dbi,
+            marker: std::marker::PhantomData,
+        }
     }
 
     /// Retrieve the sequence of a database.
     ///
     /// This function allows to retrieve the unique positive integer of this database.
     /// You can see an example usage on the `PolyDatabase::sequence` method documentation.
-    #[cfg(all(feature = "mdbx", not(feature = "lmdb")))]
     pub fn sequence<T>(&self, txn: &RoTxn<T>) -> Result<u64> {
         assert_eq!(self.env_ident, txn.env.env_mut_ptr() as usize);
 
@@ -163,7 +169,6 @@ impl<KC, DC> Database<KC, DC> {
     ///
     /// Returns `Some` with the previous value and `None` if increasing the value
     /// resulted in an overflow an therefore cannot be executed.
-    #[cfg(all(feature = "mdbx", not(feature = "lmdb")))]
     pub fn increase_sequence<T>(&self, txn: &mut RwTxn<T>, increment: u64) -> Result<Option<u64>> {
         assert_eq!(self.env_ident, txn.txn.env.env_mut_ptr() as usize);
 
@@ -679,23 +684,12 @@ impl<KC, DC> Database<KC, DC> {
 
         let mut db_stat = mem::MaybeUninit::uninit();
 
-        #[cfg(all(feature = "mdbx", not(feature = "lmdb")))]
         let result = unsafe {
             mdb_result(ffi::mdb_stat(
                 txn.txn,
                 self.dbi,
                 db_stat.as_mut_ptr(),
                 std::mem::size_of::<ffi::MDB_Stat>(),
-            ))
-
-        };
-
-        #[cfg(all(feature = "lmdb", not(feature = "mdbx")))]
-        let result = unsafe {
-            mdb_result(ffi::mdb_stat(
-                txn.txn,
-                self.dbi,
-                db_stat.as_mut_ptr(),
             ))
         };
 
@@ -993,11 +987,7 @@ impl<KC, DC> Database<KC, DC> {
     /// wtxn.commit()?;
     /// # Ok(()) }
     /// ```
-    pub fn range<'txn, T, R>(
-        &self,
-        txn: &'txn RoTxn<T>,
-        range: R,
-    ) -> Result<RoRange<'txn, KC, DC>>
+    pub fn range<'txn, T, R>(&self, txn: &'txn RoTxn<T>, range: R) -> Result<RoRange<'txn, KC, DC>>
     where
         KC: BytesEncode,
         R: RangeBounds<KC::EItem>,
@@ -1782,7 +1772,9 @@ impl<KC, DC> Database<KC, DC> {
         assert_eq!(self.env_ident, txn.txn.env.env_mut_ptr() as usize);
 
         let mut count = 0;
-        let mut iter = self.remap_data_type::<DecodeIgnore>().range_mut(txn, range)?;
+        let mut iter = self
+            .remap_data_type::<DecodeIgnore>()
+            .range_mut(txn, range)?;
 
         while let Some(_) = iter.next() {
             iter.del_current()?;

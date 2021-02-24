@@ -1,10 +1,12 @@
 mod iter;
-mod range;
 mod prefix;
+mod range;
 
-pub use self::iter::{RoIter, RoRevIter, RwIter, RwRevIter};
-pub use self::range::{RoRange, RoRevRange, RwRange, RwRevRange};
-pub use self::prefix::{RoPrefix, RoRevPrefix, RwPrefix, RwRevPrefix};
+pub use self::{
+    iter::{RoIter, RoRevIter, RwIter, RwRevIter},
+    prefix::{RoPrefix, RoRevPrefix, RwPrefix, RwRevPrefix},
+    range::{RoRange, RoRevRange, RwRange, RwRevRange},
+};
 
 fn advance_key(bytes: &mut Vec<u8>) {
     match bytes.last_mut() {
@@ -15,7 +17,9 @@ fn advance_key(bytes: &mut Vec<u8>) {
 
 fn retreat_key(bytes: &mut Vec<u8>) {
     match bytes.last_mut() {
-        Some(&mut 0) => { bytes.pop(); },
+        Some(&mut 0) => {
+            bytes.pop();
+        }
         Some(last) => *last -= 1,
         None => panic!("Vec is empty and must not be"),
     }
@@ -25,29 +29,54 @@ fn retreat_key(bytes: &mut Vec<u8>) {
 mod tests {
     #[test]
     fn prefix_iter_with_byte_255() {
-        use std::fs;
-        use std::path::Path;
-        use crate::EnvOpenOptions;
-        use crate::types::*;
+        use crate::{types::*, EnvOpenOptions};
+        use std::{fs, path::Path};
 
         fs::create_dir_all(Path::new("target").join("prefix_iter_with_byte_255.mdb")).unwrap();
         let env = EnvOpenOptions::new()
             .map_size(10 * 1024 * 1024) // 10MB
             .max_dbs(3000)
-            .open(Path::new("target").join("prefix_iter_with_byte_255.mdb")).unwrap();
+            .open(Path::new("target").join("prefix_iter_with_byte_255.mdb"))
+            .unwrap();
         let db = env.create_database::<ByteSlice, Str>(None).unwrap();
 
         // Create an ordered list of keys...
         let mut wtxn = env.write_txn().unwrap();
-        db.put(&mut wtxn, &&[0, 0, 0, 254, 119, 111, 114, 108, 100][..], &"world").unwrap();
-        db.put(&mut wtxn, &&[0, 0, 0, 255, 104, 101, 108, 108, 111][..], &"hello").unwrap();
-        db.put(&mut wtxn, &&[0, 0, 0, 255, 119, 111, 114, 108, 100][..], &"world").unwrap();
-        db.put(&mut wtxn, &&[0, 0, 1,   0, 119, 111, 114, 108, 100][..], &"world").unwrap();
+        db.put(
+            &mut wtxn,
+            &&[0, 0, 0, 254, 119, 111, 114, 108, 100][..],
+            &"world",
+        )
+        .unwrap();
+        db.put(
+            &mut wtxn,
+            &&[0, 0, 0, 255, 104, 101, 108, 108, 111][..],
+            &"hello",
+        )
+        .unwrap();
+        db.put(
+            &mut wtxn,
+            &&[0, 0, 0, 255, 119, 111, 114, 108, 100][..],
+            &"world",
+        )
+        .unwrap();
+        db.put(
+            &mut wtxn,
+            &&[0, 0, 1, 0, 119, 111, 114, 108, 100][..],
+            &"world",
+        )
+        .unwrap();
 
         // Lets check that we can prefix_iter on that sequence with the key "255".
         let mut iter = db.prefix_iter(&wtxn, &&[0, 0, 0, 255][..]).unwrap();
-        assert_eq!(iter.next().transpose().unwrap(), Some((&[0u8, 0, 0, 255, 104, 101, 108, 108, 111][..], "hello")));
-        assert_eq!(iter.next().transpose().unwrap(), Some((&[  0, 0, 0, 255, 119, 111, 114, 108, 100][..], "world")));
+        assert_eq!(
+            iter.next().transpose().unwrap(),
+            Some((&[0u8, 0, 0, 255, 104, 101, 108, 108, 111][..], "hello"))
+        );
+        assert_eq!(
+            iter.next().transpose().unwrap(),
+            Some((&[0, 0, 0, 255, 119, 111, 114, 108, 100][..], "world"))
+        );
         assert_eq!(iter.next().transpose().unwrap(), None);
         drop(iter);
 
@@ -56,17 +85,15 @@ mod tests {
 
     #[test]
     fn iter_last() {
-        use std::fs;
-        use std::path::Path;
-        use crate::EnvOpenOptions;
-        use crate::byteorder::BigEndian;
-        use crate::types::*;
+        use crate::{byteorder::BigEndian, types::*, EnvOpenOptions};
+        use std::{fs, path::Path};
 
         fs::create_dir_all(Path::new("target").join("iter_last.mdb")).unwrap();
         let env = EnvOpenOptions::new()
             .map_size(10 * 1024 * 1024) // 10MB
             .max_dbs(3000)
-            .open(Path::new("target").join("iter_last.mdb")).unwrap();
+            .open(Path::new("target").join("iter_last.mdb"))
+            .unwrap();
         let db = env.create_database::<OwnedType<BEI32>, Unit>(None).unwrap();
         type BEI32 = I32<BigEndian>;
 
@@ -121,17 +148,15 @@ mod tests {
 
     #[test]
     fn range_iter_last() {
-        use std::fs;
-        use std::path::Path;
-        use crate::EnvOpenOptions;
-        use crate::byteorder::BigEndian;
-        use crate::types::*;
+        use crate::{byteorder::BigEndian, types::*, EnvOpenOptions};
+        use std::{fs, path::Path};
 
         fs::create_dir_all(Path::new("target").join("iter_last.mdb")).unwrap();
         let env = EnvOpenOptions::new()
             .map_size(10 * 1024 * 1024) // 10MB
             .max_dbs(3000)
-            .open(Path::new("target").join("iter_last.mdb")).unwrap();
+            .open(Path::new("target").join("iter_last.mdb"))
+            .unwrap();
         let db = env.create_database::<OwnedType<BEI32>, Unit>(None).unwrap();
         type BEI32 = I32<BigEndian>;
 
@@ -210,45 +235,87 @@ mod tests {
 
     #[test]
     fn prefix_iter_last() {
-        use std::fs;
-        use std::path::Path;
-        use crate::EnvOpenOptions;
-        use crate::types::*;
+        use crate::{types::*, EnvOpenOptions};
+        use std::{fs, path::Path};
 
         fs::create_dir_all(Path::new("target").join("prefix_iter_last.mdb")).unwrap();
         let env = EnvOpenOptions::new()
             .map_size(10 * 1024 * 1024) // 10MB
             .max_dbs(3000)
-            .open(Path::new("target").join("prefix_iter_last.mdb")).unwrap();
+            .open(Path::new("target").join("prefix_iter_last.mdb"))
+            .unwrap();
         let db = env.create_database::<ByteSlice, Unit>(None).unwrap();
 
         // Create an ordered list of keys...
         let mut wtxn = env.write_txn().unwrap();
-        db.put(&mut wtxn, &&[0, 0, 0, 254, 119, 111, 114, 108, 100][..], &()).unwrap();
-        db.put(&mut wtxn, &&[0, 0, 0, 255, 104, 101, 108, 108, 111][..], &()).unwrap();
-        db.put(&mut wtxn, &&[0, 0, 0, 255, 119, 111, 114, 108, 100][..], &()).unwrap();
-        db.put(&mut wtxn, &&[0, 0, 1,   0, 119, 111, 114, 108, 100][..], &()).unwrap();
+        db.put(
+            &mut wtxn,
+            &&[0, 0, 0, 254, 119, 111, 114, 108, 100][..],
+            &(),
+        )
+        .unwrap();
+        db.put(
+            &mut wtxn,
+            &&[0, 0, 0, 255, 104, 101, 108, 108, 111][..],
+            &(),
+        )
+        .unwrap();
+        db.put(
+            &mut wtxn,
+            &&[0, 0, 0, 255, 119, 111, 114, 108, 100][..],
+            &(),
+        )
+        .unwrap();
+        db.put(&mut wtxn, &&[0, 0, 1, 0, 119, 111, 114, 108, 100][..], &())
+            .unwrap();
 
         // Lets check that we properly get the last entry.
         let iter = db.prefix_iter(&wtxn, &&[0, 0, 0][..]).unwrap();
-        assert_eq!(iter.last().transpose().unwrap(), Some((&[0, 0, 0, 255, 119, 111, 114, 108, 100][..], ())));
+        assert_eq!(
+            iter.last().transpose().unwrap(),
+            Some((&[0, 0, 0, 255, 119, 111, 114, 108, 100][..], ()))
+        );
 
         let mut iter = db.prefix_iter(&wtxn, &&[0, 0, 0][..]).unwrap();
-        assert_eq!(iter.next().transpose().unwrap(), Some((&[0, 0, 0, 254, 119, 111, 114, 108, 100][..], ())));
-        assert_eq!(iter.next().transpose().unwrap(), Some((&[0, 0, 0, 255, 104, 101, 108, 108, 111][..], ())));
-        assert_eq!(iter.last().transpose().unwrap(), Some((&[0, 0, 0, 255, 119, 111, 114, 108, 100][..], ())));
+        assert_eq!(
+            iter.next().transpose().unwrap(),
+            Some((&[0, 0, 0, 254, 119, 111, 114, 108, 100][..], ()))
+        );
+        assert_eq!(
+            iter.next().transpose().unwrap(),
+            Some((&[0, 0, 0, 255, 104, 101, 108, 108, 111][..], ()))
+        );
+        assert_eq!(
+            iter.last().transpose().unwrap(),
+            Some((&[0, 0, 0, 255, 119, 111, 114, 108, 100][..], ()))
+        );
 
         let mut iter = db.prefix_iter(&wtxn, &&[0, 0, 0][..]).unwrap();
-        assert_eq!(iter.next().transpose().unwrap(), Some((&[0, 0, 0, 254, 119, 111, 114, 108, 100][..], ())));
-        assert_eq!(iter.next().transpose().unwrap(), Some((&[0, 0, 0, 255, 104, 101, 108, 108, 111][..], ())));
-        assert_eq!(iter.next().transpose().unwrap(), Some((&[0, 0, 0, 255, 119, 111, 114, 108, 100][..], ())));
+        assert_eq!(
+            iter.next().transpose().unwrap(),
+            Some((&[0, 0, 0, 254, 119, 111, 114, 108, 100][..], ()))
+        );
+        assert_eq!(
+            iter.next().transpose().unwrap(),
+            Some((&[0, 0, 0, 255, 104, 101, 108, 108, 111][..], ()))
+        );
+        assert_eq!(
+            iter.next().transpose().unwrap(),
+            Some((&[0, 0, 0, 255, 119, 111, 114, 108, 100][..], ()))
+        );
         assert_eq!(iter.last().transpose().unwrap(), None);
 
         let iter = db.prefix_iter(&wtxn, &&[0, 0, 1][..]).unwrap();
-        assert_eq!(iter.last().transpose().unwrap(), Some((&[0, 0, 1,   0, 119, 111, 114, 108, 100][..], ())));
+        assert_eq!(
+            iter.last().transpose().unwrap(),
+            Some((&[0, 0, 1, 0, 119, 111, 114, 108, 100][..], ()))
+        );
 
         let mut iter = db.prefix_iter(&wtxn, &&[0, 0, 1][..]).unwrap();
-        assert_eq!(iter.next().transpose().unwrap(), Some((&[0, 0, 1,   0, 119, 111, 114, 108, 100][..], ())));
+        assert_eq!(
+            iter.next().transpose().unwrap(),
+            Some((&[0, 0, 1, 0, 119, 111, 114, 108, 100][..], ()))
+        );
         assert_eq!(iter.last().transpose().unwrap(), None);
 
         wtxn.abort().unwrap();
@@ -256,45 +323,87 @@ mod tests {
 
     #[test]
     fn rev_prefix_iter_last() {
-        use std::fs;
-        use std::path::Path;
-        use crate::EnvOpenOptions;
-        use crate::types::*;
+        use crate::{types::*, EnvOpenOptions};
+        use std::{fs, path::Path};
 
         fs::create_dir_all(Path::new("target").join("prefix_iter_last.mdb")).unwrap();
         let env = EnvOpenOptions::new()
             .map_size(10 * 1024 * 1024) // 10MB
             .max_dbs(3000)
-            .open(Path::new("target").join("prefix_iter_last.mdb")).unwrap();
+            .open(Path::new("target").join("prefix_iter_last.mdb"))
+            .unwrap();
         let db = env.create_database::<ByteSlice, Unit>(None).unwrap();
 
         // Create an ordered list of keys...
         let mut wtxn = env.write_txn().unwrap();
-        db.put(&mut wtxn, &&[0, 0, 0, 254, 119, 111, 114, 108, 100][..], &()).unwrap();
-        db.put(&mut wtxn, &&[0, 0, 0, 255, 104, 101, 108, 108, 111][..], &()).unwrap();
-        db.put(&mut wtxn, &&[0, 0, 0, 255, 119, 111, 114, 108, 100][..], &()).unwrap();
-        db.put(&mut wtxn, &&[0, 0, 1,   0, 119, 111, 114, 108, 100][..], &()).unwrap();
+        db.put(
+            &mut wtxn,
+            &&[0, 0, 0, 254, 119, 111, 114, 108, 100][..],
+            &(),
+        )
+        .unwrap();
+        db.put(
+            &mut wtxn,
+            &&[0, 0, 0, 255, 104, 101, 108, 108, 111][..],
+            &(),
+        )
+        .unwrap();
+        db.put(
+            &mut wtxn,
+            &&[0, 0, 0, 255, 119, 111, 114, 108, 100][..],
+            &(),
+        )
+        .unwrap();
+        db.put(&mut wtxn, &&[0, 0, 1, 0, 119, 111, 114, 108, 100][..], &())
+            .unwrap();
 
         // Lets check that we properly get the last entry.
         let iter = db.rev_prefix_iter(&wtxn, &&[0, 0, 0][..]).unwrap();
-        assert_eq!(iter.last().transpose().unwrap(), Some((&[0, 0, 0, 254, 119, 111, 114, 108, 100][..], ())));
+        assert_eq!(
+            iter.last().transpose().unwrap(),
+            Some((&[0, 0, 0, 254, 119, 111, 114, 108, 100][..], ()))
+        );
 
         let mut iter = db.rev_prefix_iter(&wtxn, &&[0, 0, 0][..]).unwrap();
-        assert_eq!(iter.next().transpose().unwrap(), Some((&[0, 0, 0, 255, 119, 111, 114, 108, 100][..], ())));
-        assert_eq!(iter.next().transpose().unwrap(), Some((&[0, 0, 0, 255, 104, 101, 108, 108, 111][..], ())));
-        assert_eq!(iter.last().transpose().unwrap(), Some((&[0, 0, 0, 254, 119, 111, 114, 108, 100][..], ())));
+        assert_eq!(
+            iter.next().transpose().unwrap(),
+            Some((&[0, 0, 0, 255, 119, 111, 114, 108, 100][..], ()))
+        );
+        assert_eq!(
+            iter.next().transpose().unwrap(),
+            Some((&[0, 0, 0, 255, 104, 101, 108, 108, 111][..], ()))
+        );
+        assert_eq!(
+            iter.last().transpose().unwrap(),
+            Some((&[0, 0, 0, 254, 119, 111, 114, 108, 100][..], ()))
+        );
 
         let mut iter = db.rev_prefix_iter(&wtxn, &&[0, 0, 0][..]).unwrap();
-        assert_eq!(iter.next().transpose().unwrap(), Some((&[0, 0, 0, 255, 119, 111, 114, 108, 100][..], ())));
-        assert_eq!(iter.next().transpose().unwrap(), Some((&[0, 0, 0, 255, 104, 101, 108, 108, 111][..], ())));
-        assert_eq!(iter.next().transpose().unwrap(), Some((&[0, 0, 0, 254, 119, 111, 114, 108, 100][..], ())));
+        assert_eq!(
+            iter.next().transpose().unwrap(),
+            Some((&[0, 0, 0, 255, 119, 111, 114, 108, 100][..], ()))
+        );
+        assert_eq!(
+            iter.next().transpose().unwrap(),
+            Some((&[0, 0, 0, 255, 104, 101, 108, 108, 111][..], ()))
+        );
+        assert_eq!(
+            iter.next().transpose().unwrap(),
+            Some((&[0, 0, 0, 254, 119, 111, 114, 108, 100][..], ()))
+        );
         assert_eq!(iter.last().transpose().unwrap(), None);
 
         let iter = db.rev_prefix_iter(&wtxn, &&[0, 0, 1][..]).unwrap();
-        assert_eq!(iter.last().transpose().unwrap(), Some((&[0, 0, 1,   0, 119, 111, 114, 108, 100][..], ())));
+        assert_eq!(
+            iter.last().transpose().unwrap(),
+            Some((&[0, 0, 1, 0, 119, 111, 114, 108, 100][..], ()))
+        );
 
         let mut iter = db.rev_prefix_iter(&wtxn, &&[0, 0, 1][..]).unwrap();
-        assert_eq!(iter.next().transpose().unwrap(), Some((&[0, 0, 1,   0, 119, 111, 114, 108, 100][..], ())));
+        assert_eq!(
+            iter.next().transpose().unwrap(),
+            Some((&[0, 0, 1, 0, 119, 111, 114, 108, 100][..], ()))
+        );
         assert_eq!(iter.last().transpose().unwrap(), None);
 
         wtxn.abort().unwrap();
@@ -302,17 +411,15 @@ mod tests {
 
     #[test]
     fn rev_range_iter_last() {
-        use std::fs;
-        use std::path::Path;
-        use crate::EnvOpenOptions;
-        use crate::byteorder::BigEndian;
-        use crate::types::*;
+        use crate::{byteorder::BigEndian, types::*, EnvOpenOptions};
+        use std::{fs, path::Path};
 
         fs::create_dir_all(Path::new("target").join("range_iter_last.mdb")).unwrap();
         let env = EnvOpenOptions::new()
             .map_size(10 * 1024 * 1024) // 10MB
             .max_dbs(3000)
-            .open(Path::new("target").join("range_iter_last.mdb")).unwrap();
+            .open(Path::new("target").join("range_iter_last.mdb"))
+            .unwrap();
         let db = env.create_database::<OwnedType<BEI32>, Unit>(None).unwrap();
         type BEI32 = I32<BigEndian>;
 

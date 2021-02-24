@@ -106,7 +106,7 @@ impl EnvOpenOptions {
         self
     }
 
-    /// Set one or [more LMDB flags](http://www.lmdb.tech/doc/group__mdb__env.html).
+    /// Set one or [more MDBX flags](https://erthink.github.io/libmdbx/group__c__opening.html).
     ///
     /// ```
     /// use std::fs;
@@ -192,14 +192,7 @@ impl EnvOpenOptions {
                         mdb_result(ffi::mdb_env_set_maxdbs(env, dbs))?;
                     }
 
-                    // When the `sync-read-txn` feature is enabled, we must force LMDB
-                    // to avoid using the thread local storage, this way we allow users
-                    // to use references of RoTxn between threads safely.
-                    let flags = if cfg!(feature = "sync-read-txn") {
-                        self.flags | Flags::MdbNoTls as u32
-                    } else {
-                        self.flags
-                    };
+                    let flags = self.flags | Flags::MdbNoTls as u32;
 
                     let result =
                         mdb_result(ffi::mdb_env_open(env, path_str.as_ptr(), flags, 0o600));
@@ -447,14 +440,6 @@ impl Env {
         Ok(())
     }
 
-    #[cfg(all(feature = "lmdb", not(feature = "mdbx")))]
-    pub fn force_sync(&self) -> Result<()> {
-        unsafe { mdb_result(ffi::mdb_env_sync(self.0.env, 1))? }
-
-        Ok(())
-    }
-
-    #[cfg(all(feature = "mdbx", not(feature = "lmdb")))]
     pub fn force_sync(&self) -> Result<()> {
         unsafe { mdb_result(ffi::mdb_env_sync(self.0.env))? }
 

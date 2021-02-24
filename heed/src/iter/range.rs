@@ -1,28 +1,21 @@
-use std::borrow::Cow;
-use std::marker;
-use std::ops::Bound;
+use std::{borrow::Cow, marker, ops::Bound};
 
-use crate::*;
 use super::{advance_key, retreat_key};
+use crate::*;
 
 fn move_on_range_end<'txn>(
     cursor: &mut RoCursor<'txn>,
     end_bound: &Bound<Vec<u8>>,
-) -> Result<Option<(&'txn [u8], &'txn [u8])>>
-{
+) -> Result<Option<(&'txn [u8], &'txn [u8])>> {
     match end_bound {
-        Bound::Included(end) => {
-            match cursor.move_on_key_greater_than_or_equal_to(end) {
-                Ok(Some((key, data))) if key == &end[..] => Ok(Some((key, data))),
-                Ok(_) => cursor.move_on_prev(),
-                Err(e) => Err(e),
-            }
+        Bound::Included(end) => match cursor.move_on_key_greater_than_or_equal_to(end) {
+            Ok(Some((key, data))) if key == &end[..] => Ok(Some((key, data))),
+            Ok(_) => cursor.move_on_prev(),
+            Err(e) => Err(e),
         },
-        Bound::Excluded(end) => {
-            cursor
-                .move_on_key_greater_than_or_equal_to(end)
-                .and_then(|_| cursor.move_on_prev())
-        },
+        Bound::Excluded(end) => cursor
+            .move_on_key_greater_than_or_equal_to(end)
+            .and_then(|_| cursor.move_on_prev()),
         Bound::Unbounded => cursor.move_on_last(),
     }
 }
@@ -30,18 +23,15 @@ fn move_on_range_end<'txn>(
 fn move_on_range_start<'txn>(
     cursor: &mut RoCursor<'txn>,
     start_bound: &mut Bound<Vec<u8>>,
-) -> Result<Option<(&'txn [u8], &'txn [u8])>>
-{
+) -> Result<Option<(&'txn [u8], &'txn [u8])>> {
     match start_bound {
-        Bound::Included(start) => {
-            cursor.move_on_key_greater_than_or_equal_to(start)
-        },
+        Bound::Included(start) => cursor.move_on_key_greater_than_or_equal_to(start),
         Bound::Excluded(start) => {
             advance_key(start);
             let result = cursor.move_on_key_greater_than_or_equal_to(start);
             retreat_key(start);
             result
-        },
+        }
         Bound::Unbounded => cursor.move_on_first(),
     }
 }
@@ -59,8 +49,7 @@ impl<'txn, KC, DC> RoRange<'txn, KC, DC> {
         cursor: RoCursor<'txn>,
         start_bound: Bound<Vec<u8>>,
         end_bound: Bound<Vec<u8>>,
-    ) -> RoRange<'txn, KC, DC>
-    {
+    ) -> RoRange<'txn, KC, DC> {
         RoRange {
             cursor,
             move_on_start: true,
@@ -138,10 +127,13 @@ where
         let result = if self.move_on_start {
             move_on_range_end(&mut self.cursor, &self.end_bound)
         } else {
-            match (self.cursor.current(), move_on_range_end(&mut self.cursor, &self.end_bound)) {
+            match (
+                self.cursor.current(),
+                move_on_range_end(&mut self.cursor, &self.end_bound),
+            ) {
                 (Ok(Some((ckey, _))), Ok(Some((key, data)))) if ckey != key => {
                     Ok(Some((key, data)))
-                },
+                }
                 (Ok(_), Ok(_)) => Ok(None),
                 (Err(e), _) | (_, Err(e)) => Err(e),
             }
@@ -163,7 +155,7 @@ where
                 } else {
                     None
                 }
-            },
+            }
             Ok(None) => None,
             Err(e) => Some(Err(e)),
         }
@@ -183,8 +175,7 @@ impl<'txn, KC, DC> RwRange<'txn, KC, DC> {
         cursor: RwCursor<'txn>,
         start_bound: Bound<Vec<u8>>,
         end_bound: Bound<Vec<u8>>,
-    ) -> RwRange<'txn, KC, DC>
-    {
+    ) -> RwRange<'txn, KC, DC> {
         RwRange {
             cursor,
             move_on_start: true,
@@ -276,10 +267,13 @@ where
         let result = if self.move_on_start {
             move_on_range_end(&mut self.cursor, &self.end_bound)
         } else {
-            match (self.cursor.current(), move_on_range_end(&mut self.cursor, &self.end_bound)) {
+            match (
+                self.cursor.current(),
+                move_on_range_end(&mut self.cursor, &self.end_bound),
+            ) {
                 (Ok(Some((ckey, _))), Ok(Some((key, data)))) if ckey != key => {
                     Ok(Some((key, data)))
-                },
+                }
                 (Ok(_), Ok(_)) => Ok(None),
                 (Err(e), _) | (_, Err(e)) => Err(e),
             }
@@ -301,7 +295,7 @@ where
                 } else {
                     None
                 }
-            },
+            }
             Ok(None) => None,
             Err(e) => Some(Err(e)),
         }
@@ -321,8 +315,7 @@ impl<'txn, KC, DC> RoRevRange<'txn, KC, DC> {
         cursor: RoCursor<'txn>,
         start_bound: Bound<Vec<u8>>,
         end_bound: Bound<Vec<u8>>,
-    ) -> RoRevRange<'txn, KC, DC>
-    {
+    ) -> RoRevRange<'txn, KC, DC> {
         RoRevRange {
             cursor,
             move_on_end: true,
@@ -405,7 +398,7 @@ where
             match (current, start) {
                 (Ok(Some((ckey, _))), Ok(Some((key, data)))) if ckey != key => {
                     Ok(Some((key, data)))
-                },
+                }
                 (Ok(_), Ok(_)) => Ok(None),
                 (Err(e), _) | (_, Err(e)) => Err(e),
             }
@@ -427,7 +420,7 @@ where
                 } else {
                     None
                 }
-            },
+            }
             Ok(None) => None,
             Err(e) => Some(Err(e)),
         }
@@ -447,8 +440,7 @@ impl<'txn, KC, DC> RwRevRange<'txn, KC, DC> {
         cursor: RwCursor<'txn>,
         start_bound: Bound<Vec<u8>>,
         end_bound: Bound<Vec<u8>>,
-    ) -> RwRevRange<'txn, KC, DC>
-    {
+    ) -> RwRevRange<'txn, KC, DC> {
         RwRevRange {
             cursor,
             move_on_end: true,
@@ -545,7 +537,7 @@ where
             match (current, start) {
                 (Ok(Some((ckey, _))), Ok(Some((key, data)))) if ckey != key => {
                     Ok(Some((key, data)))
-                },
+                }
                 (Ok(_), Ok(_)) => Ok(None),
                 (Err(e), _) | (_, Err(e)) => Err(e),
             }
@@ -567,7 +559,7 @@ where
                 } else {
                     None
                 }
-            },
+            }
             Ok(None) => None,
             Err(e) => Some(Err(e)),
         }

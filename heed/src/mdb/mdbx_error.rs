@@ -1,12 +1,9 @@
-use std::error::Error as StdError;
-use std::ffi::CStr;
-use std::os::raw::c_char;
-use std::{fmt, str};
+use std::{error::Error as StdError, ffi::CStr, fmt, os::raw::c_char, str};
 
 use libc::c_int;
 use mdbx_sys as ffi;
 
-/// An LMDB error kind.
+/// An DB error kind.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Error {
     /// key/data pair already exists

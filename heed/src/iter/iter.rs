@@ -1,6 +1,5 @@
 use crate::*;
-use std::borrow::Cow;
-use std::marker;
+use std::{borrow::Cow, marker};
 
 pub struct RoIter<'txn, KC, DC> {
     cursor: RoCursor<'txn>,
@@ -10,7 +9,11 @@ pub struct RoIter<'txn, KC, DC> {
 
 impl<'txn, KC, DC> RoIter<'txn, KC, DC> {
     pub(crate) fn new(cursor: RoCursor<'txn>) -> RoIter<'txn, KC, DC> {
-        RoIter { cursor, move_on_first: true, _phantom: marker::PhantomData }
+        RoIter {
+            cursor,
+            move_on_first: true,
+            _phantom: marker::PhantomData,
+        }
     }
 
     /// Change the codec types of this iterator, specifying the codecs.
@@ -70,7 +73,7 @@ where
             match (self.cursor.current(), self.cursor.move_on_last()) {
                 (Ok(Some((ckey, _))), Ok(Some((key, data)))) if ckey != key => {
                     Ok(Some((key, data)))
-                },
+                }
                 (Ok(_), Ok(_)) => Ok(None),
                 (Err(e), _) | (_, Err(e)) => Err(e),
             }
@@ -95,7 +98,11 @@ pub struct RwIter<'txn, KC, DC> {
 
 impl<'txn, KC, DC> RwIter<'txn, KC, DC> {
     pub(crate) fn new(cursor: RwCursor<'txn>) -> RwIter<'txn, KC, DC> {
-        RwIter { cursor, move_on_first: true, _phantom: marker::PhantomData }
+        RwIter {
+            cursor,
+            move_on_first: true,
+            _phantom: marker::PhantomData,
+        }
     }
 
     /// Delete the entry the cursor is currently pointing to.
@@ -193,7 +200,7 @@ where
             match (self.cursor.current(), self.cursor.move_on_last()) {
                 (Ok(Some((ckey, _))), Ok(Some((key, data)))) if ckey != key => {
                     Ok(Some((key, data)))
-                },
+                }
                 (Ok(_), Ok(_)) => Ok(None),
                 (Err(e), _) | (_, Err(e)) => Err(e),
             }
@@ -218,7 +225,11 @@ pub struct RoRevIter<'txn, KC, DC> {
 
 impl<'txn, KC, DC> RoRevIter<'txn, KC, DC> {
     pub(crate) fn new(cursor: RoCursor<'txn>) -> RoRevIter<'txn, KC, DC> {
-        RoRevIter { cursor, move_on_last: true, _phantom: marker::PhantomData }
+        RoRevIter {
+            cursor,
+            move_on_last: true,
+            _phantom: marker::PhantomData,
+        }
     }
 
     /// Change the codec types of this iterator, specifying the codecs.
@@ -278,7 +289,7 @@ where
             match (self.cursor.current(), self.cursor.move_on_first()) {
                 (Ok(Some((ckey, _))), Ok(Some((key, data)))) if ckey != key => {
                     Ok(Some((key, data)))
-                },
+                }
                 (Ok(_), Ok(_)) => Ok(None),
                 (Err(e), _) | (_, Err(e)) => Err(e),
             }
@@ -303,7 +314,11 @@ pub struct RwRevIter<'txn, KC, DC> {
 
 impl<'txn, KC, DC> RwRevIter<'txn, KC, DC> {
     pub(crate) fn new(cursor: RwCursor<'txn>) -> RwRevIter<'txn, KC, DC> {
-        RwRevIter { cursor, move_on_last: true, _phantom: marker::PhantomData }
+        RwRevIter {
+            cursor,
+            move_on_last: true,
+            _phantom: marker::PhantomData,
+        }
     }
 
     /// Delete the entry the cursor is currently pointing to.
@@ -401,7 +416,7 @@ where
             match (self.cursor.current(), self.cursor.move_on_first()) {
                 (Ok(Some((ckey, _))), Ok(Some((key, data)))) if ckey != key => {
                     Ok(Some((key, data)))
-                },
+                }
                 (Ok(_), Ok(_)) => Ok(None),
                 (Err(e), _) | (_, Err(e)) => Err(e),
             }

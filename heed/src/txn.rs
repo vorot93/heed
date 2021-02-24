@@ -51,19 +51,9 @@ impl<T> Drop for RoTxn<'_, T> {
     }
 }
 
-#[cfg(feature = "sync-read-txn")]
 unsafe impl<T> Send for RoTxn<'_, T> {}
-#[cfg(feature = "sync-read-txn")]
 unsafe impl<T> Sync for RoTxn<'_, T> {}
 
-#[cfg(all(feature = "lmdb", not(feature = "mdbx")))]
-fn abort_txn(txn: *mut ffi::MDB_txn) -> Result<()> {
-    // Asserts that the transaction hasn't been already committed.
-    assert!(!txn.is_null());
-    Ok(unsafe { ffi::mdb_txn_abort(txn) })
-}
-
-#[cfg(all(feature = "mdbx", not(feature = "lmdb")))]
 fn abort_txn(txn: *mut ffi::MDB_txn) -> Result<()> {
     // Asserts that the transaction hasn't been already committed.
     assert!(!txn.is_null());

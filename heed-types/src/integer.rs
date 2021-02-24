@@ -23,10 +23,12 @@
 //! of the equivalent native types, and stored in a byte order not necessarily
 //! the same as that of the target platform.
 
-use std::fmt::{self, Binary, Debug, Display, Formatter, LowerHex, Octal, UpperHex};
-use std::marker::PhantomData;
+use std::{
+    fmt::{self, Binary, Debug, Display, Formatter, LowerHex, Octal, UpperHex},
+    marker::PhantomData,
+};
 
-use bytemuck::{Zeroable, Pod};
+use bytemuck::{Pod, Zeroable};
 use byteorder::ByteOrder;
 
 macro_rules! impl_fmt_trait {
@@ -185,8 +187,8 @@ define_type!(An, I128, i128, 128, 16, read_i128, write_i128, signed);
 
 #[cfg(test)]
 mod tests {
+    use bytemuck::{bytes_of, bytes_of_mut, Pod};
     use byteorder::NativeEndian;
-    use bytemuck::{Pod, bytes_of, bytes_of_mut};
 
     use super::*;
 
